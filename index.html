@@ -193,6 +193,9 @@ for(let f of furniture)if(saved[f.userData.name]){
   f.position.z=THREE.MathUtils.clamp(saved[f.userData.name][1],-4.2,4.2);
   if(typeof saved[f.userData.name][2]==='number')f.rotation.y=saved[f.userData.name][2];
 }
+// Eski kayıtta dolap duvara ters bakıyorsa açılışta yönünü bir kez düzelt.
+const restoredWardrobe=furniturePlacement(wardrobe,wardrobe.position.x,wardrobe.position.z);
+wardrobe.rotation.y=restoredWardrobe.rotation;
 for(const d of wallDecor){
   const pos=saved['decor:'+d.userData.decor];
   if(Array.isArray(pos)&&pos.length>=2){
@@ -446,7 +449,13 @@ function furniturePlacement(f,x,z){
  ].sort((a,b)=>a.d-b.d);
  if(distances[0].d<1.55){
    const side=distances[0].side;
-   rotation=(side==='left'||side==='right')?Math.PI/2:0;
+   // Dolap kapakları yerel +Z yönünde: her duvarda odanın içine bakmalı.
+   // Sağ: -X, sol: +X, arka: +Z, ön: -Z.
+   if(f.userData.name==='wardrobe'){
+     rotation={back:0,right:-Math.PI/2,front:Math.PI,left:Math.PI/2}[side];
+   }else{
+     rotation=(side==='left'||side==='right')?Math.PI/2:0;
+   }
  }
  const [w,d]=footprint(f,rotation);
  const padding=.14;
