@@ -48,7 +48,7 @@ function updateCamera(){
  if(typeof updateWallVisibility==='function')updateWallVisibility();
 }
 function placeCamera(){updateCamera()}
-placeCamera();
+// Camera will initialize after wall groups are constructed.
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight('#ffffff','#8e82b3',2.5));let light=new THREE.DirectionalLight('#ffffff',2);light.position.set(-3,8,7);scene.add(light);
 const material=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
@@ -77,7 +77,7 @@ function updateWallVisibility(){
   wallGroups.front.visible=dz<0;
   wallGroups.back.visible=dz>=0;
 }
-updateWallVisibility();
+placeCamera();
 // Zeminde geniş merkezi oyun halısı; taşınabilirlik sprint 4.3 kapsamında.
 const rug=box(scene,3.8,.045,2.7,'#f8eade',0,.005,.65);
 box(scene,3.48,.012,2.42,'#f1d4de',0,.034,.65);
