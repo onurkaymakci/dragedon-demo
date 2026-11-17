@@ -36,11 +36,13 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #sleepZzz span:nth-child(3){font-size:33px;animation-delay:1.05s}
 @keyframes floatZ{0%,100%{transform:translateY(8px) scale(.8);opacity:.25}45%{transform:translateY(-16px) scale(1.1);opacity:1}80%{transform:translateY(-28px) scale(1);opacity:.4}}
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
+#petHearts{position:fixed;z-index:5;display:none;pointer-events:none;transform:translate(-50%,-50%);font-size:25px;text-shadow:0 2px 5px #3d204b99;animation:petHeartFloat 1.15s ease-out both}
+@keyframes petHeartFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.65)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-56px) scale(1.25)}}
 #petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.8</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
 <button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
@@ -168,7 +170,38 @@ box(rightShelf,.48,.12,1.55,'#dcb49d',-.17,0,0);
 // Ön duvar da mevcut: üstünde küçük yıldız dekoru.
 const frontStar=decor('frontStar','front',-2.3,3.1);
 ball(frontStar,.26,'#f6c5d7',0,0,.02);
-let bed=item('bed',-3.3,-2.75);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
+// İki katlı pastel ranza: alt kat oyuncak ayının, üst kat Mochi'nin.
+const BED_SLEEP_BASE=1.69;
+let bed=item('bed',-3.3,-2.75);
+const bunkWood='#b9a0d9',bunkDark='#9076b4';
+for(const x of [-.94,.94])for(const z of [-.58,.58])box(bed,.16,2.34,.15,bunkDark,x,1.18,z);
+// Alt kat: oyuncak ayı için yumuşak şilte ve küçük yastık.
+box(bed,1.90,.18,1.20,bunkWood,0,.30,0);
+box(bed,1.72,.13,1.05,'#fff1ec',0,.46,0);
+box(bed,.45,.10,.52,'#f8d0dc',-.57,.56,-.27);
+// Üst yatak: kalın yatak, yorgan, yastık, güvenlik korkulukları.
+box(bed,2.06,.16,1.36,bunkDark,0,1.55,0);
+box(bed,1.90,.18,1.21,'#fff6fa',0,1.68,0);
+box(bed,.52,.09,.57,'#ffe2ea',-.54,1.81,-.26);
+box(bed,1.94,.065,.62,'#d7b9f4',0,1.79,.25);
+for(const z of [-.64,.64])box(bed,2.01,.29,.085,bunkWood,0,1.91,z);
+box(bed,.09,.36,1.30,bunkWood,-.99,1.89,0);
+box(bed,.09,.36,.42,bunkWood,.99,1.89,-.39);
+// Merdiven: kısa, basamaklı; önden yukarı çıkıyor.
+for(const x of [.54,.93])box(bed,.07,1.88,.075,'#d5b8a6',x,.94,.71);
+for(let i=0;i<5;i++)box(bed,.44,.075,.11,'#f2ddca',.735,.30+i*.32,.71);
+// Alt katta uyuyan oyuncak ayı (dekoratif, Mochi ile karışmaz).
+const teddy=new THREE.Group();bed.add(teddy);
+teddy.position.set(.05,.04,-.04);
+const bearBrown='#ce9d7e',bearMuzzle='#fff1db';
+ball(teddy,.35,bearBrown,0,.72,0);
+ball(teddy,.14,bearBrown,-.28,.94,-.04);ball(teddy,.14,bearBrown,.28,.94,-.04);
+ball(teddy,.27,bearBrown,0,.31,.05);
+ball(teddy,.15,bearMuzzle,0,.60,.26);
+ball(teddy,.05,'#483343',0,.63,.40);
+ball(teddy,.045,'#483343',-.13,.76,.29);ball(teddy,.045,'#483343',.13,.76,.29);
+for(const s of [-1,1]){ball(teddy,.12,bearBrown,s*.33,.33,.04);ball(teddy,.13,bearBrown,s*.18,.11,.22)}
+box(bed,.85,.065,.12,'#f1d6ba',0,2.22,-.60);
 let wardrobe=item('wardrobe',3.45,-3.45);
 box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);
 box(wardrobe,1.15,2.15,.08,'#82644f',0,1.25,.411);
@@ -217,6 +250,9 @@ closedLeftEye.visible=false;closedRightEye.visible=false;
 const sleepZzz=document.getElementById('sleepZzz');
 const sleepAnchor=new THREE.Vector3();
 let sleepPose=0;
+let pettingUntil=0,pettingStarted=0,lastPetRewardAt=-10000;
+const petHearts=document.getElementById('petHearts');
+const petHeartAnchor=new THREE.Vector3();
 for(const x of [-.3,.3]){
  const ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.52,12),material('#908fd9'));
  ear.position.set(x,1.52,.10);ear.rotation.z=x<0?.2:-.2;headRig.add(ear);
@@ -414,6 +450,22 @@ const ground=new THREE.Plane(new THREE.Vector3(0,1,0),0), hit=new THREE.Vector3(
 const petTarget=new THREE.Vector3(0,.13,0);
 let petRoute=[],petReactionStart=-10000,petReactionKind='happy',blinkAt=0,nextBlink=2000,stepCycle=0;
 const petPhrases=['Mochi seni gördüğüne sevindi! 💗','Mochi zıplıyor! ✨','Mochi mırıldandı! 🎵','Mochi seni seviyor! 🐾'];
+function finishPetting(){
+ const now=performance.now();
+ pettingUntil=now+1450;
+ if(now-lastPetRewardAt<2600){say('Mochi sevildiği için mutlu! 💕');return}
+ lastPetRewardAt=now;
+ clearAttention();
+ const comfort=fear>=20;
+ stats.joy=Math.min(100,stats.joy+(comfort?12:7));
+ fear=Math.max(0,fear-(comfort?45:12));
+ lastComfortAt=now;awakeSeconds=0;
+ refresh();updateClock();save();
+ petHearts.style.animation='none';
+ void petHearts.offsetWidth;
+ petHearts.style.animation='';
+ say(comfort?'Mochi korkusunu unuttu, kendini güvende hissediyor! 💗':'Mochi okşanmayı çok sevdi! 🥰');
+}
 function reactToPet(){
   if(isSleeping()||headingToBed){say('Şşş… Mochi dinleniyor. 🌙');return;}
   clearAttention();
@@ -731,7 +783,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   const decor=editMode&&!onPet?decorationAt(e):null;
   const item=editMode&&!onPet&&!decor?furnitureAt(e):null;
   const start={x:e.clientX,y:e.clientY};
-  gesture={id:e.pointerId,start,last:start,item,decor,onPet,armed:false,dragging:false,changed:false,canceled:false,timer:null,
+  gesture={id:e.pointerId,start,last:start,item,decor,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
     initial:item?{position:item.position.clone(),rotation:item.rotation.y}:null,
     decorInitial:decor?decor.position.clone():null,
@@ -783,6 +835,14 @@ renderer.domElement.addEventListener('pointermove',e=>{
     if(!gesture.dragging&&moved>MOVE_THRESHOLD)gesture.dragging=true;
     if(gesture.decor)moveDecoration(e);
     else moveFurniture(e);
+  }else if(gesture.onPet&&!resting&&!headingToBed&&!editMode){
+    // Oyun modunda pet üzerinde başlayan tek parmak hareketi: okşama.
+    // Hareket hitbox dışına çıksa bile kamerayı oynatmaz.
+    const segment=distance(next,gesture.last);
+    gesture.petDistance+=Math.min(segment,48);
+    if(segment>2)gesture.petSamples++;
+    if(gesture.petDistance>=26&&gesture.petSamples>=2)gesture.petting=true;
+    if(moved>MOVE_THRESHOLD)gesture.dragging=true;
   }else{
     if(moved>MOVE_THRESHOLD)gesture.dragging=true;
     if(gesture.dragging){
@@ -800,6 +860,10 @@ function finishPointer(e,cancel=false){
   if(!gesture||gesture.id!==e.pointerId)return;
   clearHold();
   const g=gesture;gesture=null;
+  if(g.onPet&&g.petting){
+    if(!cancel&&!resting&&!headingToBed)finishPetting();
+    return;
+  }
   if(g.decor){
     if(cancel&&g.decorInitial)setDecorWall(g.decor,g.decorOriginalSide,
       g.decorOriginalSide==='back'||g.decorOriginalSide==='front'?g.decorInitial.x:g.decorInitial.z,g.decorInitial.y);
@@ -879,7 +943,7 @@ function lieDown(){
  fear=0;darknessSeconds=0;clearAttention();
  updateClock();
  pet.position.x=bed.position.x;pet.position.z=bed.position.z;
- pet.position.y=.59;pet.rotation.y=bed.rotation.y;
+ pet.position.y=BED_SLEEP_BASE;pet.rotation.y=bed.rotation.y;
  if(lightOn){lightOn=false;applyLighting()}
  save();updateClock();say('Mochi uyudu, enerji kazanıyor 💤');
 }
@@ -962,7 +1026,7 @@ function frame(t){
   const jump=reacting&&petReactionKind==='jump'?Math.sin(Math.PI*reactionTime/750)*.28:0;
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
   const crawlBounce=crawlBlend*.009*(1-Math.cos(stepCycle*2));
-  pet.position.y=(resting?.59:.13)+(sleeping?0:crawlBounce+.012*Math.sin(t*.002))+jump;
+  pet.position.y=(resting?BED_SLEEP_BASE:.13)+(sleeping?0:crawlBounce+.012*Math.sin(t*.002))+jump;
   if(resting){
     pet.rotation.z=.16;
     pet.rotation.x=.08;
@@ -1008,6 +1072,14 @@ function frame(t){
     babyTail.rotation.y+=.20*Math.sin(t*.012)*attentionWave;
   }
   if(attentionElapsed>=ATTENTION_DURATION&&attentionStartedAt>0)clearAttention();
+  // Sevilirken gözlerini kısmak, kuyruk sallamak ve başını okşayan ele yaslamak.
+  const petting=(!resting&&t<pettingUntil);
+  const pettingAmount=petting?Math.sin(Math.PI*Math.min(1,(pettingUntil-t)/1450)):.0;
+  if(petting){
+    headRig.rotation.z+=Math.sin(t*.005)*.15*pettingAmount;
+    headRig.rotation.x-=.12*pettingAmount;
+    babyTail.rotation.y+=Math.sin(t*.018)*.45*pettingAmount;
+  }
   // Uyanınca ağır ağır doğrulma, iki ön patiyi geriye esnetme, başı kaldırma.
   const wakeElapsed=t-wakeStartedAt;
   const waking=wakeElapsed>=0&&wakeElapsed<WAKE_ANIMATION_MS&&!resting;
@@ -1040,7 +1112,7 @@ function frame(t){
   headRig.position.y=sleepPose*.017*breath;
   const blinkElapsed=t-blinkAt;
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
-  const eyeHeight=waking&&wakePhase<.38?.16:(blinking?.12:1);
+  const eyeHeight=petting?.12:(waking&&wakePhase<.38?.16:(blinking?.12:1));
   for(const eye of [leftEye,rightEye,leftShine,rightShine]){
     eye.visible=!resting;
     eye.scale.y=eyeHeight;
@@ -1070,6 +1142,18 @@ function frame(t){
       petThought.style.top=((1-thoughtAnchor.y)*innerHeight/2)+'px';
     }
   }else petThought.style.display='none';
+  if(petting){
+    pet.updateWorldMatrix(true,false);
+    petHeartAnchor.set(0,1.92,0);
+    pet.localToWorld(petHeartAnchor);
+    petHeartAnchor.project(camera);
+    const visible=petHeartAnchor.z>-1&&petHeartAnchor.z<1&&Math.abs(petHeartAnchor.x)<1.1&&Math.abs(petHeartAnchor.y)<1.1;
+    petHearts.style.display=visible?'block':'none';
+    if(visible){
+      petHearts.style.left=((petHeartAnchor.x+1)*innerWidth/2)+'px';
+      petHearts.style.top=((1-petHeartAnchor.y)*innerHeight/2)+'px';
+    }
+  }else petHearts.style.display='none';
   // Dokunma tepkisi büyük ekranda da net görülsün.
   const wakeStretch=waking?Math.sin(Math.PI*wakePhase)*.095:0;
   pet.scale.setScalar((reacting?1+.12*Math.sin(Math.PI*reactionTime/750):1)+wakeStretch);
