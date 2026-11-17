@@ -131,7 +131,7 @@ box(rightDoorPivot,.67,2.24,.075,'#efc69d',-.335,0,0);
 ball(leftDoorPivot,.065,'#f9e8ad',.58,0,.095);
 ball(rightDoorPivot,.065,'#f9e8ad',-.58,0,.095);
 let wardrobeOpen=false,wardrobeDoorProgress=0;
-function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;say(wardrobeOpen?'Dolap açıldı! 👗':'Dolap kapandı! 🚪')}
+function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;save();say(wardrobeOpen?'Dolap açıldı! 👗':'Dolap kapandı! 🚪')}
 let chest=item('chest',3.4,2.4);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
 let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);
 // Daha geniş ve görünmez dokunma alanı
@@ -145,12 +145,37 @@ const rightShine=ball(pet,.04,'#ffffff',.18,1.45,.56);
 const nose=ball(pet,.09,'#f4a5b4',0,1.2,.55);
 for(let x of [-.3,.3]){let ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.52,12),material('#908fd9'));ear.position.set(x,1.72,0);ear.rotation.z=x<0?.2:-.2;pet.add(ear)}ball(pet,.21,'#84dac5',-.4,.2,.3);ball(pet,.21,'#84dac5',.4,.2,.3);
 const key='dragedon-demo-save-v1';let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
-for(let f of furniture)if(saved[f.userData.name]){f.position.x=saved[f.userData.name][0];f.position.z=saved[f.userData.name][1]}
+for(let f of furniture)if(saved[f.userData.name]){
+  f.position.x=THREE.MathUtils.clamp(saved[f.userData.name][0],-4.7,4.7);
+  f.position.z=THREE.MathUtils.clamp(saved[f.userData.name][1],-4.2,4.2);
+  if(typeof saved[f.userData.name][2]==='number')f.rotation.y=saved[f.userData.name][2];
+}
+for(const d of wallDecor){
+  const pos=saved['decor:'+d.userData.decor];
+  if(Array.isArray(pos)&&pos.length>=2){
+    const side=d.userData.side;
+    if(side==='back'||side==='front')d.position.x=THREE.MathUtils.clamp(pos[0],-4.65,4.65);
+    else d.position.z=THREE.MathUtils.clamp(pos[0],-4.1,4.1);
+    d.position.y=THREE.MathUtils.clamp(pos[1],.9,3.65);
+  }
+}
+wardrobeOpen=!!saved.wardrobeOpen;wardrobeDoorProgress=wardrobeOpen?1:0;
+leftDoorPivot.rotation.y=-wardrobeDoorProgress*1.35;
+rightDoorPivot.rotation.y=wardrobeDoorProgress*1.35;
 let stats=saved.stats||{food:70,joy:80,clean:75};
 currentTheme=Number.isInteger(saved.theme)?saved.theme%themes.length:0;
 floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);const toast=document.getElementById('toast');
 function say(s){toast.textContent=s}function refresh(){for(let k of Object.keys(stats))document.getElementById(k).style.width=stats[k]+'%'}
-function save(){let data={stats,theme:currentTheme};for(let f of furniture)data[f.userData.name]=[f.position.x,f.position.z];localStorage.setItem(key,JSON.stringify(data))}
+function save(){
+ const data={stats,theme:currentTheme};
+ for(const f of furniture)data[f.userData.name]=[f.position.x,f.position.z,f.rotation.y];
+ for(const d of wallDecor){
+   const side=d.userData.side;
+   data['decor:'+d.userData.decor]=[side==='back'||side==='front'?d.position.x:d.position.z,d.position.y];
+ }
+ data.wardrobeOpen=wardrobeOpen;
+ localStorage.setItem(key,JSON.stringify(data));
+}
 function act(k,n,message){stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300)}
 document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
 document.getElementById('play').onclick=()=>{stats.food=Math.max(0,stats.food-4);act('joy',20,'Mochi çok eğlendi! 🎾')};
