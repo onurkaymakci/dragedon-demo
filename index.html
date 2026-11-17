@@ -28,6 +28,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #bar #reset{background:#e9e0ed}
 #bar #rest{background:#fff1d3}
 #bar #lights{background:#e2eafc}
+#bar .care-btn:disabled{opacity:.38;filter:grayscale(.65);cursor:not-allowed;box-shadow:none;transform:none}
 #sleepZzz{position:fixed;display:none;z-index:2;pointer-events:none;white-space:nowrap;filter:drop-shadow(0 2px 3px #29203a99);transform:translate(-50%,-50%);color:#fff3ff}
 #sleepZzz span{display:inline-block;font-family:system-ui,sans-serif;font-weight:900;text-shadow:0 2px 4px #323053;animation:floatZ 2.7s ease-in-out infinite}
 #sleepZzz span:nth-child(1){font-size:19px;animation-delay:0s}
@@ -282,7 +283,13 @@ function save(){
  data.petStage=babyStage;
  localStorage.setItem(key,JSON.stringify(data));
 }
-function act(k,n,message){stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300)}
+function act(k,n,message){
+ if((resting||headingToBed)&&(k==='food'||k==='clean')){
+  say(resting?'Mochi uyuyor, önce uyandır 💤':'Mochi yatağına gidiyor 🛏️');return;
+ }
+ stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);
+ pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300);
+}
 document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
 document.getElementById('play').onclick=()=>{
  if(resting||headingToBed){say('Mochi önce dinlenmesini bitirsin 💤');return}
@@ -765,6 +772,12 @@ function isSleeping(){return resting}
 function updateClock(){
  document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
  document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':'Mochi mutlu';
+ // Uyku veya yatağa gidiş sırasında bakım ve oyun yapılamaz.
+ for(const id of ['feed','wash','play']){
+  const button=document.getElementById(id);
+  button.disabled=resting||headingToBed;
+  button.title=button.disabled?'Önce Mochi’yi uyandır':'';
+ }
  if(resting)updateCareButton('rest','☀️','Uyandır','Mochi’yi uyandır');
  else if(headingToBed)updateCareButton('rest','✋','Vazgeç','Yatağa gitmeyi iptal et');
  else updateCareButton('rest','😴','Uyu','Mochi’yi yatağında uyut');
