@@ -29,7 +29,7 @@ const CAMERA_ELEVATION=.43;
 function focusCamera(dt=0){
   if(typeof pet==='undefined')return;
   // Yakınlaştıkça oyuncunun karakterini izle, uzaklaşınca odanın bütününe dön.
-  const follow=THREE.MathUtils.smoothstep(cameraDistance,18,8);
+  const follow=1-THREE.MathUtils.smoothstep(cameraDistance,8,18);
   const desiredX=pet.position.x*follow;
   const desiredZ=pet.position.z*follow;
   const desiredY=1.05+.15*follow;
