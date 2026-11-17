@@ -38,7 +38,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -283,16 +283,24 @@ function save(){
  data.petStage=babyStage;
  localStorage.setItem(key,JSON.stringify(data));
 }
+function careLocked(){return resting||headingToBed}
+function careGuard(){
+ if(!careLocked())return false;
+ say(resting?'💤 Mochi uyuyor. Beslemek veya temizlemek için önce uyandır!':'🛏️ Mochi yatağına gidiyor. Önce dinlenmesini bitirsin!');
+ return true;
+}
 function act(k,n,message){
- if((resting||headingToBed)&&(k==='food'||k==='clean')){
-  say(resting?'Mochi uyuyor, önce uyandır 💤':'Mochi yatağına gidiyor 🛏️');return;
- }
+ // Bakım durumu, görsel butonun disabled olmasından BAĞIMSIZ olarak korunur.
+ if(careLocked())return careGuard();
  stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);
  pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300);
 }
-document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
+document.getElementById('feed').onclick=()=>{
+ if(careGuard())return;
+ act('food',20,'Mochi çileği çok sevdi! 🍓');
+};
 document.getElementById('play').onclick=()=>{
- if(resting||headingToBed){say('Mochi önce dinlenmesini bitirsin 💤');return}
+ if(careGuard())return
  if(stats.energy<9){say('Mochi oyun için çok yorgun! Yatağına götür 🛏️');startRest(true);return}
  if(stats.food<8){say('Mochi acıktı, önce besle 🍓');return}
  stats.food=Math.max(0,stats.food-7);
@@ -301,7 +309,10 @@ document.getElementById('play').onclick=()=>{
  act('joy',20,'Mochi oynadı, biraz yoruldu ve acıktı! 🎾');
  if(stats.energy<12)startRest(true);
 };
-document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu! 🫧');
+document.getElementById('wash').onclick=()=>{
+ if(careGuard())return;
+ act('clean',25,'Mochi tertemiz oldu! 🫧');
+};
 document.getElementById('lights').onclick=()=>{
  lightOn=!lightOn;applyLighting();save();
  say(lightOn?'Işıklar açıldı ☀️':'Işıklar kapandı 🌙');
@@ -775,8 +786,10 @@ function updateClock(){
  // Uyku veya yatağa gidiş sırasında bakım ve oyun yapılamaz.
  for(const id of ['feed','wash','play']){
   const button=document.getElementById(id);
-  button.disabled=resting||headingToBed;
-  button.title=button.disabled?'Önce Mochi’yi uyandır':'';
+  button.disabled=careLocked();
+  button.setAttribute('aria-disabled',String(careLocked()));
+  button.title=button.disabled?'Mochi uyuyor: önce uyandır':'';
+  button.style.pointerEvents=button.disabled?'none':'';
  }
  if(resting)updateCareButton('rest','☀️','Uyandır','Mochi’yi uyandır');
  else if(headingToBed)updateCareButton('rest','✋','Vazgeç','Yatağa gitmeyi iptal et');
@@ -807,6 +820,7 @@ function startRest(automatic=false){
 }
 function lieDown(){
  headingToBed=false;resting=true;petRoute=[];
+ updateClock();
  pet.position.x=bed.position.x;pet.position.z=bed.position.z;
  pet.position.y=.59;pet.rotation.y=bed.rotation.y;
  if(lightOn){lightOn=false;applyLighting()}
@@ -815,6 +829,7 @@ function lieDown(){
 function wakeUp(){
  if(!resting)return;
  resting=false;autoRest=false;
+ updateClock();
  const p=bedApproach()[0];
  if(p){pet.position.x=p.x;pet.position.z=p.z}
  else{ensurePetSafeSpawn()}
