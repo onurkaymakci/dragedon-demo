@@ -21,17 +21,13 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.m
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.1,100);
 // Kamera uzaktayken odayı, yakındayken Mochi'yi merkez alır.
-const CAMERA_TARGET=new THREE.Vector3(0,1.05,0);
+const CAMERA_TARGET=new THREE.Vector3(0,1.30,0);
 const CAMERA_MIN=6.5,CAMERA_MAX=29;
 const CAMERA_MIN_ANGLE=-Math.PI*4,CAMERA_MAX_ANGLE=Math.PI*4;
 let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?23.5:17.2;
 const CAMERA_ELEVATION=.43;
-function focusCamera(dt=0){
-  // Oda düzenleme kamerası: yakınlaştırma Mochi'ye kilitlenmez.
-  // Sabit oda merkezine bakar; zamanla kendi kendine kaymaz.
-  const blend=dt<=0?1:1-Math.exp(-dt*6);
-  CAMERA_TARGET.lerp(new THREE.Vector3(0,1.3,0),blend);
-}
+// Kamera odağı oyuncu tarafından iki parmakla belirlenir.
+function focusCamera(){ /* Karakteri otomatik takip etme kapalı. */ }
 function updateCamera(){
  cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
  // Kamera tam tur döner, açı değerinin sonsuza kadar büyümesini önle.
@@ -254,52 +250,96 @@ function clearPetSegment(a,b){
  return true;
 }
 function planPetRoute(x,z){
-  const cols=Math.floor((MAX_X-MIN_X)/GRID)+1,rows=Math.floor((MAX_Z-MIN_Z)/GRID)+1;
-  const node=(cx,cz)=>({cx,cz,x:MIN_X+cx*GRID,z:MIN_Z+cz*GRID});
-  const nearest=(x,z)=>[THREE.MathUtils.clamp(Math.round((x-MIN_X)/GRID),0,cols-1),THREE.MathUtils.clamp(Math.round((z-MIN_Z)/GRID),0,rows-1)];
-  const [sx,sz]=nearest(pet.position.x,pet.position.z),[tx,tz]=nearest(x,z);
-  const start=sz*cols+sx,target=tz*cols+tx,parent=new Int32Array(cols*rows).fill(-2);
-  const queue=[start];parent[start]=-1;let qi=0,best=start,bestDist=Infinity;
-  while(qi<queue.length){
-    const id=queue[qi++],cx=id%cols,cz=Math.floor(id/cols),p=node(cx,cz);
-    const dist=Math.hypot(p.x-x,p.z-z);
-    if(petCellFree(p.x,p.z)&&dist<bestDist){best=id;bestDist=dist}
-    if(id===target&&petCellFree(p.x,p.z)){best=id;break}
-    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const nx=cx+dx,nz=cz+dz;
-      if(nx<0||nx>=cols||nz<0||nz>=rows)continue;
-      const nid=nz*cols+nx,p2=node(nx,nz);
-      if(parent[nid]!==-2||(!petCellFree(p2.x,p2.z)&&nid!==start))continue;
-      parent[nid]=id;queue.push(nid);
-    }
-  }
-  if(best===start){petRoute=[];return false}
-  const path=[];let id=best;
-  while(id!==start&&id>=0){const n=node(id%cols,Math.floor(id/cols));path.push(n);id=parent[id]}
-  // Izgara rota noktalarını birleştir; her hücrede aniden yön değişmesin.
-  const coarse=path.reverse();
-  const route=[];
-  let from={x:pet.position.x,z:pet.position.z};
-  let idx=0;
-  while(idx<coarse.length){
-    let furthest=idx;
-    for(let j=idx;j<coarse.length;j++){
-      if(clearPetSegment(from,coarse[j]))furthest=j;
-      else break;
-    }
-    route.push(coarse[furthest]);
-    from=coarse[furthest];idx=furthest+1;
-  }
-  petRoute=route;
-  if(petRoute.length){const last=petRoute[petRoute.length-1];petTarget.set(last.x,.13,last.z)}
-  return petRoute.length>0;
+ // Hedef doğrudan görülebiliyorsa ızgara kullanılmaz: düz çizgide git.
+ const startPos={x:pet.position.x,z:pet.position.z};
+ const requested={x:THREE.MathUtils.clamp(x,MIN_X,MAX_X),z:THREE.MathUtils.clamp(z,MIN_Z,MAX_Z)};
+ if(clearPetSegment(startPos,requested)){
+   petRoute=[requested];petTarget.set(requested.x,.13,requested.z);
+   return true;
+ }
+ const cols=Math.floor((MAX_X-MIN_X)/GRID)+1,rows=Math.floor((MAX_Z-MIN_Z)/GRID)+1;
+ const node=(cx,cz)=>({cx,cz,x:MIN_X+cx*GRID,z:MIN_Z+cz*GRID});
+ const nearest=(px,pz)=>[THREE.MathUtils.clamp(Math.round((px-MIN_X)/GRID),0,cols-1),THREE.MathUtils.clamp(Math.round((pz-MIN_Z)/GRID),0,rows-1)];
+ const [sx,sz]=nearest(startPos.x,startPos.z),[tx,tz]=nearest(requested.x,requested.z);
+ const start=sz*cols+sx,target=tz*cols+tx;
+ const parent=new Int32Array(cols*rows).fill(-2);
+ const costs=new Float32Array(cols*rows).fill(Infinity);
+ const open=[start];parent[start]=-1;costs[start]=0;
+ const heuristic=(cx,cz)=>Math.hypot(cx-tx,cz-tz);
+ let best=start,bestDist=Infinity,iterations=0;
+ // 8 yönlü A*: yalnızca duvar veya mobilya engel olduğunda dolanır.
+ while(open.length&&iterations++<cols*rows*4){
+   let bestOpenIndex=0,bestF=Infinity;
+   for(let i=0;i<open.length;i++){
+     const id=open[i],score=costs[id]+heuristic(id%cols,Math.floor(id/cols));
+     if(score<bestF){bestF=score;bestOpenIndex=i}
+   }
+   const id=open.splice(bestOpenIndex,1)[0];
+   const cx=id%cols,cz=Math.floor(id/cols),p=node(cx,cz);
+   const dist=Math.hypot(p.x-requested.x,p.z-requested.z);
+   if(petCellFree(p.x,p.z)&&dist<bestDist){best=id;bestDist=dist}
+   if((id===target&&petCellFree(p.x,p.z))||(dist<.35&&clearPetSegment(p,requested))){
+     best=id;break;
+   }
+   for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+     if(!dx&&!dz)continue;
+     const nx=cx+dx,nz=cz+dz;
+     if(nx<0||nx>=cols||nz<0||nz>=rows)continue;
+     const id2=nz*cols+nx,np=node(nx,nz);
+     if(!petCellFree(np.x,np.z))continue;
+     if(dx&&dz&&!clearPetSegment(p,np))continue;
+     const g=costs[id]+Math.hypot(dx,dz);
+     if(g>=costs[id2])continue;
+     costs[id2]=g;parent[id2]=id;
+     if(!open.includes(id2))open.push(id2);
+   }
+ }
+ if(best===start){petRoute=[];return false}
+ const path=[];
+ for(let id=best;id!==start&&id>=0;id=parent[id]){
+   if(id<0||parent[id]===-2)break;
+   path.push(node(id%cols,Math.floor(id/cols)));
+ }
+ path.reverse();
+ if(clearPetSegment(path[path.length-1],requested))path.push(requested);
+ const route=[];let from=startPos,index=0;
+ while(index<path.length){
+   let far=index;
+   // En son görülebilir rota noktasını seç, ilk engelde durma.
+   for(let j=path.length-1;j>=index;j--){
+     if(clearPetSegment(from,path[j])){far=j;break}
+   }
+   if(!clearPetSegment(from,path[far]))break;
+   route.push(path[far]);from=path[far];index=far+1;
+ }
+ petRoute=route;
+ if(route.length){const last=route[route.length-1];petTarget.set(last.x,.13,last.z)}
+ return route.length>0;
 }
 const HOLD_MS=350, MOVE_THRESHOLD=12;
 const activeTouches=new Map();
-let pinchDistance=0,blockTapUntilAllUp=false;
+let pinchDistance=0,pinchMid=null,blockTapUntilAllUp=false;
 function touchDistance(){
  const t=[...activeTouches.values()];
  return t.length<2?0:Math.hypot(t[0].x-t[1].x,t[0].y-t[1].y);
+}
+function touchMidpoint(){
+ const t=[...activeTouches.values()];
+ return t.length<2?null:{x:(t[0].x+t[1].x)/2,y:(t[0].y+t[1].y)/2};
+}
+function floorAtScreen(x,y){
+ const pointer={clientX:x,clientY:y};
+ point(pointer);
+ const out=new THREE.Vector3();
+ return ray.ray.intersectPlane(ground,out)?out:null;
+}
+function panCameraToKeepPoint(before,screen){
+ if(!before||!screen)return;
+ const after=floorAtScreen(screen.x,screen.y);
+ if(!after)return;
+ CAMERA_TARGET.x=THREE.MathUtils.clamp(CAMERA_TARGET.x+before.x-after.x,-4.6,4.6);
+ CAMERA_TARGET.z=THREE.MathUtils.clamp(CAMERA_TARGET.z+before.z-after.z,-4.1,4.1);
+ updateCamera();
 }
 let gesture=null;
 function point(e){
@@ -423,7 +463,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   if(activeTouches.size>=2){
     clearHold();
     if(gesture){gesture.canceled=true;gesture.dragging=true;gesture=null}
-    blockTapUntilAllUp=true;pinchDistance=touchDistance();
+    blockTapUntilAllUp=true;pinchDistance=touchDistance();pinchMid=touchMidpoint();
     return;
   }
   if(blockTapUntilAllUp||gesture)return;
@@ -459,13 +499,15 @@ renderer.domElement.addEventListener('pointerdown',e=>{
 renderer.domElement.addEventListener('pointermove',e=>{
   if(activeTouches.has(e.pointerId))activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(activeTouches.size>=2){
-    const next=touchDistance();
+    const next=touchDistance(),mid=touchMidpoint();
+    const anchor=pinchMid?floorAtScreen(pinchMid.x,pinchMid.y):null;
     if(next>0&&pinchDistance>0){
       cameraDistance=THREE.MathUtils.clamp(cameraDistance*THREE.MathUtils.clamp(pinchDistance/next,.70,1.3),CAMERA_MIN,CAMERA_MAX);
-      focusCamera(.025);
       updateCamera();
+      // Yakınlaştırılan obje ekranda aynı yerde kalır; kaydırmak için iki parmağı birlikte sürükle.
+      panCameraToKeepPoint(anchor,mid);
     }
-    pinchDistance=next;return;
+    pinchDistance=next;pinchMid=mid;return;
   }
   if(blockTapUntilAllUp||!gesture||gesture.id!==e.pointerId)return;
   const next={x:e.clientX,y:e.clientY};
@@ -491,7 +533,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
 });
 function finishPointer(e,cancel=false){
   activeTouches.delete(e.pointerId);
-  if(activeTouches.size<2)pinchDistance=0;
+  if(activeTouches.size<2){pinchDistance=0;pinchMid=null;}
   if(blockTapUntilAllUp){if(activeTouches.size===0)blockTapUntilAllUp=false;return}
   if(!gesture||gesture.id!==e.pointerId)return;
   clearHold();
@@ -529,7 +571,7 @@ renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,tru
 function isSleeping(){const n=new Date();const h=n.getHours()+n.getMinutes()/60;return h>=22.5||h<7.5}
 function updateClock(){const sleeping=isSleeping();document.getElementById('clock').textContent=sleeping?'🌙':'☀️';document.getElementById('mood').textContent=sleeping?'Mochi uyuyor':'Mochi mutlu';}
 updateClock();
-let lastTime=0;
+let lastTime=0,crawlBlend=0,previousPetX=pet.position.x,previousPetZ=pet.position.z;
 function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min((t-lastTime)/1000,.05);lastTime=t;
@@ -551,34 +593,37 @@ function frame(t){
       }else petRoute=[];
     }
   }
-  // Bebek emekleme ritmi: çapraz patiler dönüşümlü ilerler.
-  stepCycle+=moving?dt*7.2:dt*1.6;
+  // Yumuşak emekleme: ritim gerçek ilerlenen mesafeden türetilir.
+  const movedDistance=Math.hypot(pet.position.x-previousPetX,pet.position.z-previousPetZ);
+  previousPetX=pet.position.x;previousPetZ=pet.position.z;
+  crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
+  stepCycle+=movedDistance*8;
   const reactionTime=t-petReactionStart,reacting=!sleeping&&reactionTime>=0&&reactionTime<750;
   const jump=reacting&&petReactionKind==='jump'?Math.sin(Math.PI*reactionTime/750)*.28:0;
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
-  const crawlBounce=moving?.018*Math.abs(Math.sin(stepCycle*2)):0;
+  const crawlBounce=crawlBlend*.009*(1-Math.cos(stepCycle*2));
   pet.position.y=.13+(sleeping?0:crawlBounce+.012*Math.sin(t*.002))+jump;
   pet.rotation.z=tilt;
   if(babyStage==='baby'){
     // Çapraz kollar sırayla öne ve arkaya gider; zeminle temas kontrollüdür.
-    const stride=moving?.16:0;
+    const stride=.13*crawlBlend;
     for(const limb of crawlLimbs){
       const phase=stepCycle+(limb.side*limb.front>0?0:Math.PI);
       const reach=Math.sin(phase)*stride;
       limb.joint.position.z=limb.front*.39+reach;
-      limb.joint.position.y=.25+Math.max(0,Math.cos(phase))*(moving?.07:0);
+      limb.joint.position.y=.25+Math.max(0,Math.cos(phase))*.045*crawlBlend;
       limb.joint.rotation.x=reach*.7;
     }
-    bodyRig.rotation.x=moving?.027*Math.sin(stepCycle*2):0;
-    bodyRig.rotation.z=moving?.025*Math.sin(stepCycle):0;
-    headRig.rotation.x=moving?-.020+.025*Math.sin(stepCycle*2):.015*Math.sin(t*.0017);
+    bodyRig.rotation.x=.015*crawlBlend*Math.sin(stepCycle*2);
+    bodyRig.rotation.z=.016*crawlBlend*Math.sin(stepCycle);
+    headRig.rotation.x=crawlBlend*(-.01+.018*Math.sin(stepCycle*2))+(1-crawlBlend)*.015*Math.sin(t*.0017);
     headRig.rotation.z=tilt*.35;
-    babyTail.rotation.y=moving?.3*Math.sin(stepCycle):.1*Math.sin(t*.002);
+    babyTail.rotation.y=crawlBlend*.17*Math.sin(stepCycle)+(1-crawlBlend)*.1*Math.sin(t*.002);
   }
   wardrobeDoorProgress=THREE.MathUtils.damp(wardrobeDoorProgress,wardrobeOpen?1:0,8,dt);
   leftDoorPivot.rotation.y=-1.35*wardrobeDoorProgress;
   rightDoorPivot.rotation.y=1.35*wardrobeDoorProgress;
-  focusCamera(dt);
+  // Kamerayı Mochi yürürken otomatik yeniden merkezleme: KAPALI.
   updateCamera();
   // Rastgele göz kırpma ve dokunmaya özel göz kırpma
   if(t>nextBlink){blinkAt=t;nextBlink=t+2300+Math.random()*3200}
