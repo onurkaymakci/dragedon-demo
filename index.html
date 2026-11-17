@@ -27,16 +27,10 @@ const CAMERA_MIN_ANGLE=-Math.PI*4,CAMERA_MAX_ANGLE=Math.PI*4;
 let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?23.5:17.2;
 const CAMERA_ELEVATION=.43;
 function focusCamera(dt=0){
-  if(typeof pet==='undefined')return;
-  // Yakınlaştıkça oyuncunun karakterini izle, uzaklaşınca odanın bütününe dön.
-  const follow=1-THREE.MathUtils.smoothstep(cameraDistance,8,18);
-  const desiredX=pet.position.x*follow;
-  const desiredZ=pet.position.z*follow;
-  const desiredY=1.05+.15*follow;
-  const lerp=dt<=0?1:1-Math.exp(-dt*7);
-  CAMERA_TARGET.x=THREE.MathUtils.lerp(CAMERA_TARGET.x,desiredX,lerp);
-  CAMERA_TARGET.y=THREE.MathUtils.lerp(CAMERA_TARGET.y,desiredY,lerp);
-  CAMERA_TARGET.z=THREE.MathUtils.lerp(CAMERA_TARGET.z,desiredZ,lerp);
+  // Oda düzenleme kamerası: yakınlaştırma Mochi'ye kilitlenmez.
+  // Sabit oda merkezine bakar; zamanla kendi kendine kaymaz.
+  const blend=dt<=0?1:1-Math.exp(-dt*6);
+  CAMERA_TARGET.lerp(new THREE.Vector3(0,1.3,0),blend);
 }
 function updateCamera(){
  cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
@@ -250,6 +244,15 @@ function ensurePetSafeSpawn(){
   if(best){pet.position.x=best.x;pet.position.z=best.z;petRoute=[];petTarget.set(best.x,.13,best.z)}
 }
 ensurePetSafeSpawn();
+function clearPetSegment(a,b){
+ const distance=Math.hypot(b.x-a.x,b.z-a.z);
+ const steps=Math.max(1,Math.ceil(distance/.13));
+ for(let i=1;i<=steps;i++){
+  const t=i/steps;
+  if(!petCellFree(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;
+ }
+ return true;
+}
 function planPetRoute(x,z){
   const cols=Math.floor((MAX_X-MIN_X)/GRID)+1,rows=Math.floor((MAX_Z-MIN_Z)/GRID)+1;
   const node=(cx,cz)=>({cx,cz,x:MIN_X+cx*GRID,z:MIN_Z+cz*GRID});
@@ -273,7 +276,21 @@ function planPetRoute(x,z){
   if(best===start){petRoute=[];return false}
   const path=[];let id=best;
   while(id!==start&&id>=0){const n=node(id%cols,Math.floor(id/cols));path.push(n);id=parent[id]}
-  petRoute=path.reverse();
+  // Izgara rota noktalarını birleştir; her hücrede aniden yön değişmesin.
+  const coarse=path.reverse();
+  const route=[];
+  let from={x:pet.position.x,z:pet.position.z};
+  let idx=0;
+  while(idx<coarse.length){
+    let furthest=idx;
+    for(let j=idx;j<coarse.length;j++){
+      if(clearPetSegment(from,coarse[j]))furthest=j;
+      else break;
+    }
+    route.push(coarse[furthest]);
+    from=coarse[furthest];idx=furthest+1;
+  }
+  petRoute=route;
   if(petRoute.length){const last=petRoute[petRoute.length-1];petTarget.set(last.x,.13,last.z)}
   return petRoute.length>0;
 }
@@ -375,14 +392,18 @@ function wallPoint(e,decor,out){
  return ray.ray.intersectPlane(plane,out);
 }
 function moveDecoration(e){
- const decor=gesture?.decor;
- if(!decor||!gesture.dragging||!wallPoint(e,decor,hit))return;
- const side=decor.userData.side;
- const coordinate=(side==='back'||side==='front')?'x':'z';
- const max=(coordinate==='x'?ROOM_HALF_X:ROOM_HALF_Z)-.65;
- decor.position[coordinate]=THREE.MathUtils.clamp(hit[coordinate]+gesture.decorOffset.u,-max,max);
- decor.position.y=THREE.MathUtils.clamp(hit.y+gesture.decorOffset.y,.9,3.65);
- gesture.changed=true;
+ const d=gesture?.decor;
+ if(!d||!gesture.dragging)return;
+ // World-plane üzerinden sürükleme, eksenleri duvara göre kısıtla.
+ if(!wallPoint(e,d,hit))return;
+ const side=d.userData.side;
+ const coord=side==='back'||side==='front'?'x':'z';
+ const limit=(coord==='x'?ROOM_HALF_X:ROOM_HALF_Z)-.75;
+ const newU=THREE.MathUtils.clamp(hit[coord]+gesture.decorOffset.u,-limit,limit);
+ const newY=THREE.MathUtils.clamp(hit.y+gesture.decorOffset.y,.85,3.65);
+ if(Math.abs(d.position[coord]-newU)>.001||Math.abs(d.position.y-newY)>.001){
+   d.position[coord]=newU;d.position.y=newY;gesture.changed=true;
+ }
 }
 function moveFurniture(e){
   if(!gesture?.item||!gesture.dragging)return;
@@ -423,8 +444,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{
     }
   }
   if(item||decor){
-    // 350ms bekle, ama kullanıcı parmağını erken oynatırsa taşıma iptal.
-    if(groundAt(e,hit)){gesture.offset.x=item.position.x-hit.x;gesture.offset.z=item.position.z-hit.z;}
+    // Yalnızca zemin mobilyasında yer düzlemi offset'i hesaplanır.
+    // Duvar dekoru için offset yukarıda ayrı hesaplandı.
+    if(item&&groundAt(e,hit)){gesture.offset.x=item.position.x-hit.x;gesture.offset.z=item.position.z-hit.z;}
     const id=e.pointerId;
     gesture.timer=setTimeout(()=>{
       if(gesture&&gesture.id===id&&!gesture.canceled){
@@ -516,9 +538,9 @@ function frame(t){
   if(!sleeping&&petRoute.length){
     const wp=petRoute[0],dx=wp.x-pet.position.x,dz=wp.z-pet.position.z;
     const dist=Math.hypot(dx,dz);
-    if(dist<.06)petRoute.shift();
+    if(dist<.035)petRoute.shift();
     else{
-      const speed=babyStage==='baby'?.82:1.25;
+      const speed=babyStage==='baby'?.95:1.25;
       const step=Math.min(dist,dt*speed);
       const nx=pet.position.x+dx/dist*step,nz=pet.position.z+dz/dist*step;
       if(petCellFree(nx,nz)){
@@ -530,7 +552,7 @@ function frame(t){
     }
   }
   // Bebek emekleme ritmi: çapraz patiler dönüşümlü ilerler.
-  stepCycle+=moving?dt*8.5:dt*1.6;
+  stepCycle+=moving?dt*7.2:dt*1.6;
   const reactionTime=t-petReactionStart,reacting=!sleeping&&reactionTime>=0&&reactionTime<750;
   const jump=reacting&&petReactionKind==='jump'?Math.sin(Math.PI*reactionTime/750)*.28:0;
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
@@ -539,7 +561,7 @@ function frame(t){
   pet.rotation.z=tilt;
   if(babyStage==='baby'){
     // Çapraz kollar sırayla öne ve arkaya gider; zeminle temas kontrollüdür.
-    const stride=moving?.23:0;
+    const stride=moving?.16:0;
     for(const limb of crawlLimbs){
       const phase=stepCycle+(limb.side*limb.front>0?0:Math.PI);
       const reach=Math.sin(phase)*stride;
@@ -547,9 +569,9 @@ function frame(t){
       limb.joint.position.y=.25+Math.max(0,Math.cos(phase))*(moving?.07:0);
       limb.joint.rotation.x=reach*.7;
     }
-    bodyRig.rotation.x=moving?.045*Math.sin(stepCycle*2):0;
-    bodyRig.rotation.z=moving?.045*Math.sin(stepCycle):0;
-    headRig.rotation.x=moving?-.035+.045*Math.sin(stepCycle*2):.015*Math.sin(t*.0017);
+    bodyRig.rotation.x=moving?.027*Math.sin(stepCycle*2):0;
+    bodyRig.rotation.z=moving?.025*Math.sin(stepCycle):0;
+    headRig.rotation.x=moving?-.020+.025*Math.sin(stepCycle*2):.015*Math.sin(t*.0017);
     headRig.rotation.z=tilt*.35;
     babyTail.rotation.y=moving?.3*Math.sin(stepCycle):.1*Math.sin(t*.002);
   }
