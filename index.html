@@ -77,6 +77,22 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 
+/* v0.8.7 — kamera ve oda araçları da katlanabilir */
+#toolsToggle{position:fixed;z-index:10;right:9px;bottom:calc(11px + env(safe-area-inset-bottom,0px));height:45px;min-width:48px;padding:8px 11px;border:1px solid #dec8f0;border-radius:16px;background:#e5d6ffed;color:#422c54;font-size:21px;box-shadow:0 3px 9px #22123366;touch-action:manipulation}
+#cameraTools,#roomActions{display:none!important;z-index:9}
+body.tools-menu-open #cameraTools{display:flex!important;position:fixed;left:auto;right:9px;bottom:calc(68px + env(safe-area-inset-bottom,0px));flex-wrap:wrap;max-width:min(90vw,360px);justify-content:flex-end;background:#302443ee;border-radius:14px;padding:8px;box-shadow:0 7px 20px #1b123688}
+body.tools-menu-open #roomActions{display:flex!important;position:fixed;right:9px;bottom:calc(129px + env(safe-area-inset-bottom,0px));max-width:min(90vw,360px);align-items:flex-end;background:#302443ee;border-radius:14px;padding:8px;box-shadow:0 7px 20px #1b123688}
+body.tools-menu-open #roomActions #editTools{max-height:40vh;overflow-y:auto}
+body.care-menu-open #toolsToggle{opacity:.65}
+body.care-menu-open #cameraTools,body.care-menu-open #roomActions{display:none!important}
+#hint{animation:hintFadeOut 1s ease 8s forwards}
+@keyframes hintFadeOut{to{opacity:0;visibility:hidden}}
+@media(max-width:600px){
+ #toolsToggle{right:7px;bottom:calc(9px + env(safe-area-inset-bottom,0px));height:40px;min-width:43px;padding:6px 9px;font-size:19px}
+ body.tools-menu-open #cameraTools{right:7px;bottom:calc(57px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 14px)}
+ body.tools-menu-open #roomActions{right:7px;bottom:calc(116px + env(safe-area-inset-bottom,0px))}
+}
+@media(prefers-reduced-motion:reduce){#hint{animation:none;opacity:.0;visibility:hidden}}
 /* v0.8.6 — sade, gerektiğinde açılan bakım menüsü */
 #careToggle{position:fixed;z-index:9;left:11px;bottom:calc(13px + env(safe-area-inset-bottom,0px));min-width:48px;height:45px;padding:8px 12px;border:1px solid #edd5f0;border-radius:17px;background:#e6cafff5;color:#422c54;font-size:21px;line-height:1;box-shadow:0 3px 9px #22123366;touch-action:manipulation}
 #careToggle:focus-visible{outline:3px solid #aa7be8;outline-offset:2px}
@@ -100,9 +116,10 @@ body.care-menu-open #roomActions{bottom:calc(174px + env(safe-area-inset-bottom,
  #toast{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
 }
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.6</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.7</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
+<button id="toolsToggle" type="button" title="Kamera ve oda araçları" aria-label="Kamera ve oda araçlarını aç" aria-expanded="false" aria-controls="cameraTools roomActions">🛠️</button>
 <div id="cameraTools" aria-label="Kamera kontrolleri"><button id="cameraRoom" type="button" title="Odayı göster">🏠 Oda</button><button id="cameraPet" type="button" title="Mochi'ye odaklan">🐉 Mochi</button><button id="cameraNear" type="button" title="Yakınlaş">＋</button><button id="cameraFar" type="button" title="Uzaklaş">－</button></div>
 <div id="furnEditBar" aria-label="Seçili mobilya düzenleme"><strong id="furnEditTitle">🛋️ Mobilya seçildi</strong><button id="furnEditMove" type="button">✋ Taşı</button><button id="furnEditRotate" type="button">↻ Döndür</button><button id="furnEditRemove" type="button">📦 Kaldır</button><button id="furnConfirm" type="button">✓ Onayla</button><button id="furnCancel" type="button">✕ Vazgeç</button></div>
 <div id="furnModal" role="dialog" aria-modal="true" aria-label="Mobilya envanteri"><div id="furnPanel"><h2>🛋️ Oda Envanteri</h2><p>Mobilyaya dokunarak odaya ekle. Ardından eşyanın yanında çıkan Taşı, Döndür, Kaldır ve ✓ Onayla araçlarıyla düzenle. Eşyaya uzun basarak da düzenlemeye başlayabilirsin.</p><div id="furnGrid"></div><div id="furnSelected">Ekleyeceğin eşyayı seç</div><div id="furnActions"><button id="furnClose" type="button">Kapat</button></div></div></div>
@@ -952,6 +969,7 @@ function scheduleCareMenuClose(){
  careMenuTimer=setTimeout(closeCareMenu,8000);
 }
 function openCareMenu(){
+ closeToolsMenu();
  careBar.classList.add('care-open');document.body.classList.add('care-menu-open');
  careToggle.setAttribute('aria-expanded','true');
  careToggle.setAttribute('aria-label','Mochi bakım menüsünü kapat');
@@ -964,6 +982,38 @@ careBar.addEventListener('click',e=>{
  if(e.target.closest('.care-btn'))setTimeout(closeCareMenu,500);
 });
 closeCareMenu();
+
+// Kamera ve oda düzenleme butonları yalnızca 🛠️ üzerinden açılır.
+const toolsToggle=document.getElementById('toolsToggle');
+let toolsMenuTimer=null;
+function closeToolsMenu(){
+ if(toolsMenuTimer){clearTimeout(toolsMenuTimer);toolsMenuTimer=null}
+ document.body.classList.remove('tools-menu-open');
+ toolsToggle.textContent='🛠️';
+ toolsToggle.setAttribute('aria-expanded','false');
+ toolsToggle.setAttribute('aria-label','Kamera ve oda araçlarını aç');
+}
+function scheduleToolsMenuClose(){
+ if(toolsMenuTimer)clearTimeout(toolsMenuTimer);
+ toolsMenuTimer=setTimeout(closeToolsMenu,10000);
+}
+function openToolsMenu(){
+ closeCareMenu();
+ document.body.classList.add('tools-menu-open');
+ toolsToggle.textContent='✕';
+ toolsToggle.setAttribute('aria-expanded','true');
+ toolsToggle.setAttribute('aria-label','Kamera ve oda araçlarını kapat');
+ scheduleToolsMenuClose();
+}
+toolsToggle.onclick=()=>document.body.classList.contains('tools-menu-open')?closeToolsMenu():openToolsMenu();
+for(const id of ['cameraTools','roomActions']){
+ const root=document.getElementById(id);
+ root.addEventListener('pointerdown',scheduleToolsMenuClose);
+ root.addEventListener('click',e=>{
+  if(e.target.closest('button'))setTimeout(closeToolsMenu,450);
+ });
+}
+closeToolsMenu();
 
 function createExtraFurniture(type,id){
  const f=item(id,0,0);f.userData.extraType=type;extraFurniture.set(id,f);
