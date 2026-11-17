@@ -56,7 +56,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.0</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
@@ -398,6 +398,62 @@ function movePetTowardChasedToy(dt){
  pet.rotation.y+=Math.atan2(Math.sin(angle-pet.rotation.y),Math.cos(angle-pet.rotation.y))*Math.min(1,dt*9);
  return true;
 }
+function resetSpecialToy(toy){
+ if(!toy)return;
+ toy.position.y=.05;toy.rotation.set(0,0,0);
+ for(const obj of toy.children){
+  const original=obj.userData.restPose;
+  if(original){obj.position.copy(original.position);obj.rotation.copy(original.rotation);obj.scale.copy(original.scale)}
+ }
+}
+function animateSpecialToy(toy,now){
+ const id=toy.userData.toyId,p=toy.userData.animParts;
+ if(!p)return;
+ const ms=now-toyPlayStartedAt,u=Math.min(1,ms/3600);
+ const envelope=Math.sin(Math.PI*u),beat=Math.sin(ms*.014),fast=Math.sin(ms*.030);
+ if(id==='blocks'){
+  const lift=u<.36?u/.36:u<.60?1:Math.max(0,1-(u-.60)/.40);
+  p.top.position.y=.48+.34*lift;
+  p.top.position.x=.28*Math.max(0,Math.sin(Math.PI*Math.max(0,u-.50)/.50));
+  p.top.rotation.z=-.60*Math.max(0,Math.sin(Math.PI*Math.max(0,u-.48)/.52));
+  p.right.rotation.z=.16*envelope*fast;
+ }else if(id==='duck'){
+  const bob=Math.max(0,beat);
+  toy.position.y=.05+.075*bob*envelope;
+  toy.rotation.z=.15*beat*envelope;
+  const nod=.055*fast*envelope;
+  p.head.position.y=.60+nod;p.beak.position.y=.55+nod;p.eye.position.y=.67+nod;
+ }else if(id==='rocket'){
+  const takeoff=Math.sin(Math.PI*u);
+  toy.position.y=.05+1.12*Math.pow(takeoff,1.5);
+  toy.rotation.z=.12*beat*envelope;
+  toy.rotation.y=ms*.0018*envelope;
+ }else if(id==='ring'){
+  p.torus.rotation.y=ms*.007;
+  p.torus.rotation.x=Math.PI/2+.48*envelope*Math.sin(ms*.009);
+  toy.position.y=.05+.10*Math.max(0,fast)*envelope;
+  p.bead.position.x=.16*Math.sin(ms*.012)*envelope;
+ }else if(id==='star'){
+  p.star.rotation.y=ms*.005;
+  p.star.rotation.z=ms*.003;
+  const size=1+.21*envelope*Math.sin(ms*.013);
+  p.star.scale.setScalar(size);
+  p.sparkle.scale.setScalar(1+.40*envelope*Math.max(0,fast));
+  toy.position.y=.05+.21*envelope;
+ }else if(id==='robot'){
+  toy.position.y=.05+.07*Math.max(0,fast)*envelope;
+  toy.rotation.y=.25*Math.sin(ms*.006)*envelope;
+  p.face.rotation.z=.19*beat*envelope;
+  p.light.scale.setScalar(1+.65*envelope*Math.max(0,fast));
+  p.antenna.rotation.z=.26*fast*envelope;
+ }else if(id==='dino'){
+  toy.rotation.y=.32*Math.sin(ms*.006)*envelope;
+  toy.rotation.z=.10*Math.sin(ms*.011)*envelope;
+  const nod=.09*beat*envelope;
+  p.head.position.y=.63+nod;p.horn.position.y=.91+nod;p.eye.position.y=.68+nod;
+  toy.position.y=.05+.06*Math.max(0,fast)*envelope;
+ }
+}
 function updateToyPlay(now){
  if(!toyPlayingId)return;
  const toy=activeToys.get(toyPlayingId);
@@ -431,6 +487,9 @@ function updateToyPlay(now){
   toy.position.y=.05+Math.max(0,Math.sin(beat*.027))*.07;
   toy.rotation.z=Math.sin(beat*.028)*.075;
   if(beat>=3250)endToyPlaying();
+ }else if(toyPlayPhase==='special'){
+  animateSpecialToy(toy,now);
+  if(now-toyPlayStartedAt>=3600)endToyPlaying();
  }else if(toyPlayPhase==='generic'){
   const p=Math.min(1,(now-toyPlayStartedAt)/TOY_PLAY_MS);
   toy.position.y=.05+Math.max(0,Math.sin(now*.013))*.20*Math.sin(Math.PI*p);
@@ -455,34 +514,48 @@ function createToyModel(def){
   patch.scale.set(1,.28,1);
   g.userData.rollRig=roller;
  }else if(def.id==='blocks'){
-  box(g,.36,.36,.36,m,-.16,.18,.04);box(g,.32,.32,.32,'#ffcf88',.17,.16,-.10);box(g,.26,.26,.26,'#c7a9ea',0,.48,0);
+  const left=box(g,.36,.36,.36,m,-.16,.18,.04);
+  const right=box(g,.32,.32,.32,'#ffcf88',.17,.16,-.10);
+  const top=box(g,.26,.26,.26,'#c7a9ea',0,.48,0);
+  g.userData.animParts={left,right,top};
  }else if(def.id==='duck'){
-  ball(g,.34,m,0,.30,0);ball(g,.23,m,.13,.60,.12);box(g,.18,.09,.20,'#ed994b',.20,.55,.35);ball(g,.045,'#383049',.22,.67,.28);
+  const body=ball(g,.34,m,0,.30,0),head=ball(g,.23,m,.13,.60,.12);
+  const beak=box(g,.18,.09,.20,'#ed994b',.20,.55,.35);
+  const eye=ball(g,.045,'#383049',.22,.67,.28);
+  g.userData.animParts={body,head,beak,eye};
  }else if(def.id==='car'){
   box(g,.72,.25,.40,m,0,.25,0);box(g,.36,.21,.34,'#fff2e7',-.08,.47,0);
   for(const x of [-.24,.24])for(const z of [-.21,.21]){const w=ball(g,.13,'#5a526d',x,.13,z);w.scale.z=.65}
  }else if(def.id==='rocket'){
   const body=new THREE.Mesh(new THREE.CylinderGeometry(.20,.24,.54,12),material(m));body.position.y=.37;g.add(body);
   const tip=new THREE.Mesh(new THREE.ConeGeometry(.21,.33,12),material('#f5b0b8'));tip.position.y=.79;g.add(tip);
-  ball(g,.10,'#8cd6ed',0,.48,.215);
+  const window=ball(g,.10,'#8cd6ed',0,.48,.215);
+  g.userData.animParts={body,tip,window};
  }else if(def.id==='ring'){
   const torus=new THREE.Mesh(new THREE.TorusGeometry(.30,.105,10,24),material(m));torus.rotation.x=Math.PI/2;torus.position.y=.14;g.add(torus);
-  ball(g,.12,'#ffd485',0,.27,0);
+  const bead=ball(g,.12,'#ffd485',0,.27,0);
+  g.userData.animParts={torus,bead};
  }else if(def.id==='star'){
   const star=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,0),material(m));star.position.y=.37;g.add(star);
-  ball(g,.07,'#fff4cf',0,.43,.32);
+  const sparkle=ball(g,.07,'#fff4cf',0,.43,.32);
+  g.userData.animParts={star,sparkle};
  }else if(def.id==='drum'){
   const drum=new THREE.Mesh(new THREE.CylinderGeometry(.30,.30,.43,14),material(m));drum.position.y=.25;g.add(drum);
   const top=new THREE.Mesh(new THREE.CylinderGeometry(.31,.31,.05,14),material('#fff0d9'));top.position.y=.48;g.add(top);
   box(g,.055,.38,.055,'#ac805b',.29,.50,0);
  }else if(def.id==='robot'){
-  box(g,.43,.36,.31,m,0,.30,0);box(g,.38,.31,.35,'#f3e5ff',0,.67,0);
-  for(const x of [-.11,.11])ball(g,.055,'#3d4e75',x,.70,.19);
-  box(g,.04,.15,.04,'#77718b',0,.91,0);ball(g,.07,'#ffb5b8',0,.99,0);
+  const torso=box(g,.43,.36,.31,m,0,.30,0);
+  const face=box(g,.38,.31,.35,'#f3e5ff',0,.67,0);
+  const eyes=[-.11,.11].map(x=>ball(g,.055,'#3d4e75',x,.70,.19));
+  const antenna=box(g,.04,.15,.04,'#77718b',0,.91,0);
+  const light=ball(g,.07,'#ffb5b8',0,.99,0);
+  g.userData.animParts={torso,face,eyes,antenna,light};
  }else if(def.id==='dino'){
-  ball(g,.36,m,0,.33,-.03);ball(g,.24,m,.16,.63,.13);
+  const body=ball(g,.36,m,0,.33,-.03);
+  const head=ball(g,.24,m,.16,.63,.13);
   const horn=new THREE.Mesh(new THREE.ConeGeometry(.11,.22,8),material('#d5adee'));horn.position.set(.16,.91,.12);g.add(horn);
-  ball(g,.035,'#2d3f45',.29,.68,.28);
+  const eye=ball(g,.035,'#2d3f45',.29,.68,.28);
+  g.userData.animParts={body,head,horn,eye};
  }
  return g;
 }
@@ -510,7 +583,9 @@ function takeToy(id,position){
  if(!def)return false;
  const spot=position&&validToySpot(position[0],position[1],id)?{x:position[0],z:position[1]}:toySpawnSpot(id);
  if(!spot)return false;
- const toy=createToyModel(def);toy.position.set(spot.x,.05,spot.z);scene.add(toy);activeToys.set(id,toy);
+ const toy=createToyModel(def);
+ for(const obj of toy.children)obj.userData.restPose={position:obj.position.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()};
+ toy.position.set(spot.x,.05,spot.z);scene.add(toy);activeToys.set(id,toy);
  if(typeof resting!=='undefined'&&!resting&&!headingToBed)nextToyExploreAt=performance.now()+250;
  return true;
 }
@@ -583,25 +658,28 @@ function startToyPlaying(now){
  toyPlayingId=id;toyTargetId=null;petRoute=[];
  toyPlayStartedAt=now;lastToyPlayedId=id;
  toyPlayRound=0;toyPhaseStartedAt=now;
- toyPlayPhase=id==='drum'?'drumming':toyIsChaseType(id)?'pushing':'generic';
+ toyPlayPhase=id==='drum'?'drumming':toyIsChaseType(id)?'pushing':toy.userData.animParts?'special':'generic';
  clearAttention();
  const def=TOY_TYPES.find(d=>d.id===id);
  petReactionKind='jump';petReactionStart=now;
  if(toyIsChaseType(id)){
   if(!startToyPush(now)){toyPlayPhase='generic';say('Mochi '+def.name+' ile oynuyor! 🎾')}
- }else say(id==='drum'?'Mochi patileriyle davul çalıyor! 🥁':('Mochi '+(def?.name||'oyuncak')+' ile oynuyor! '+(def?.emoji||'🎾')));
+ }else {
+  const actions={blocks:'Mochi bloklardan kule yapıyor! 🧱',duck:'Mochi ördeği dürtüyor! 🐤',rocket:'Mochi roketi havalandırdı! 🚀',ring:'Mochi halkayı döndürüyor! ⭕',star:'Mochi yıldızı parlatıyor! ⭐',robot:'Mochi robotla dans ediyor! 🤖',dino:'Mochi dinozorla arkadaş oldu! 🦕'};
+  say(id==='drum'?'Mochi patileriyle davul çalıyor! 🥁':(actions[id]||'Mochi '+(def?.name||'oyuncak')+' ile oynuyor! '+(def?.emoji||'🎾')));
+ }
 }
 function stopToyPlaying(){
  if(toyPlayingId){
   const toy=activeToys.get(toyPlayingId);
-  if(toy){toy.position.y=.05;toy.rotation.y=0;toy.rotation.z=0;}
+  if(toy)resetSpecialToy(toy);
  }
  if(toyPlayPhase==='chasing')petRoute=[];
  toyPlayingId=null;toyPlayPhase='idle';toyPlayRound=0;
 }
 function endToyPlaying(){
  const id=toyPlayingId,toy=activeToys.get(id);
- if(toy){toy.position.y=.05;toy.rotation.y=0;toy.rotation.z=0;}
+ if(toy)resetSpecialToy(toy);
  stopToyPlaying();toyTargetId=null;
  nextToyExploreAt=performance.now()+9000;
  if(!id||resting||headingToBed)return;
