@@ -54,7 +54,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.4</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
@@ -396,7 +396,7 @@ function returnToy(id){
 }
 // Mochi uyanık ve uygun durumdaysa oyuncakların yanına kendiliğinden gider.
 function mayPlayToys(){
- return !resting&&!headingToBed&&!toyModal.classList.contains('open')&&!gesture&&!editMode&&stats.energy>=12&&stats.food>=9;
+ return !resting&&!headingToBed&&!toyModal.classList.contains('open')&&!gesture&&stats.energy>=12&&stats.food>=9;
 }
 function selectToyForMochi(preferredId=null){
  if(!mayPlayToys()||toyPlayingId)return false;
@@ -407,7 +407,18 @@ function selectToyForMochi(preferredId=null){
   if(!activeToys.has(id))continue;
   const d=Math.hypot(toy.position.x-pet.position.x,toy.position.z-pet.position.z);
   if(d<.82){toyTargetId=id;petRoute=[];startToyPlaying(performance.now());return true}
-  if(planPetRoute(toy.position.x,toy.position.z)){
+  // Oyuncağın tam üzerine değil çevresindeki ulaşılabilir bir noktaya yaklaş.
+  const approaches=[];
+  const angle=Math.atan2(pet.position.z-toy.position.z,pet.position.x-toy.position.x);
+  for(const radius of [.65,.80,.95,1.10]){
+   for(let k=0;k<8;k++){
+    const a=angle+k*Math.PI/4,x=toy.position.x+Math.cos(a)*radius,z=toy.position.z+Math.sin(a)*radius;
+    if(petCellFree(x,z))approaches.push({x,z,d:Math.hypot(x-pet.position.x,z-pet.position.z)});
+   }
+  }
+  approaches.sort((a,b)=>a.d-b.d);
+  for(const p of approaches){
+   if(!planPetRoute(p.x,p.z))continue;
    toyTargetId=id;clearAttention();
    const def=TOY_TYPES.find(d=>d.id===id);
    say('Mochi '+(def?.name||'oyuncağı')+' fark etti! 🐾');
@@ -419,7 +430,7 @@ function selectToyForMochi(preferredId=null){
 }
 function startToyPlaying(now){
  const id=toyTargetId,toy=activeToys.get(id);
- if(!id||!toy||!mayPlayToys()){toyTargetId=null;return}
+ if(!id||!toy||!mayPlayToys()){toyTargetId=null;nextToyExploreAt=performance.now()+1000;return}
  toyPlayingId=id;toyTargetId=null;petRoute=[];
  toyPlayStartedAt=now;lastToyPlayedId=id;
  clearAttention();
@@ -487,8 +498,8 @@ toyModal.addEventListener('click',e=>{if(e.target===toyModal)closeToyBox()});
 document.getElementById('toyTake').onclick=()=>{
  let count=0;
  for(const id of toySelections)if(takeToy(id))count++;
- closeToyBox();nextToyExploreAt=performance.now()+1400;save();
- say(count?count+' oyuncak odaya çıktı! Geri koymak için sandığın üzerine sürükle 🧸':'Oyuncaklar için yerde boş alan bulunamadı 🪑');
+ closeToyBox();nextToyExploreAt=performance.now()+350;save();
+ say(count?count+' oyuncak çıktı! Mochi onları inceleyecek 🐉🎾':'Oyuncaklar için yerde boş alan bulunamadı 🪑');
 };
 let stats={food:70,joy:80,clean:75,energy:85,...(saved.stats||{})};
 for(const k of ['food','joy','clean','energy'])stats[k]=THREE.MathUtils.clamp(Number(stats[k])||0,0,100);
@@ -622,8 +633,8 @@ editButton.onclick=()=>{
  editPanel.classList.toggle('is-playing',!editMode);
  editButton.textContent=editMode?'✓ Düzenlemeyi bitir':'🛠️ Odayı düzenle';
  editButton.setAttribute('aria-pressed',String(editMode));
- if(!editMode){selectWallDecor(null);nextToyExploreAt=performance.now()+2000;}
- else{toyTargetId=null;stopToyPlaying();petRoute=[];nextToyExploreAt=performance.now()+5000;}
+ if(!editMode)selectWallDecor(null);
+ nextToyExploreAt=performance.now()+450;
  document.getElementById('hint').textContent=editMode?
   'Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır':
   'Oyun modu · Mochi’ye dokun veya zemine dokunarak yürüt';
@@ -1103,9 +1114,9 @@ function finishPointer(e,cancel=false){
         if(g.toyInitial)g.toy.position.copy(g.toyInitial);
         say('Oyuncağı boş bir zemine bırak 🪑');
       }else say('Oyuncak yerleştirildi! Geri toplamak için kutuya sürükle 🧸');
-      nextToyExploreAt=performance.now()+1600;
+      nextToyExploreAt=performance.now()+400;
       save();
-    }else if(!cancel&&!resting&&!headingToBed&&!editMode){
+    }else if(!cancel&&!resting&&!headingToBed){
       // Tek dokunulan oyuncağa Mochi'nin ilgisini yönlendir.
       petRoute=[];toyTargetId=null;stopToyPlaying();
       selectToyForMochi(g.toy.userData.toyId);
@@ -1231,9 +1242,9 @@ function frame(t){
   }
   if(toyTargetId){
     const toy=activeToys.get(toyTargetId);
-    if(!toy||resting||headingToBed||editMode){toyTargetId=null;petRoute=[];}
+    if(!toy||resting||headingToBed){toyTargetId=null;petRoute=[];}
     else if(Math.hypot(toy.position.x-pet.position.x,toy.position.z-pet.position.z)<.88)startToyPlaying(t);
-    else if(!petRoute.length){toyTargetId=null;nextToyExploreAt=t+6500;}
+    else if(!petRoute.length){toyTargetId=null;nextToyExploreAt=t+750;}
   }
   let moving=false;
   if(!sleeping&&petRoute.length){
@@ -1289,7 +1300,7 @@ function frame(t){
   }
   if(toyPlayingId){
     const toy=activeToys.get(toyPlayingId);
-    if(!toy||resting||headingToBed||editMode)endToyPlaying();
+    if(!toy||resting||headingToBed)stopToyPlaying();
     else{
       const elapsed=t-toyPlayStartedAt,phase=Math.min(1,elapsed/TOY_PLAY_MS);
       const wiggle=Math.sin(elapsed*.012),pulse=Math.sin(Math.PI*phase);
