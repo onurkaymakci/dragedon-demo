@@ -38,7 +38,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.4</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -826,16 +826,18 @@ function lieDown(){
  if(lightOn){lightOn=false;applyLighting()}
  save();updateClock();say('Mochi uyudu, enerji kazanıyor 💤');
 }
-function wakeUp(){
+function wakeUp(fullyRested=false){
  if(!resting)return;
  resting=false;autoRest=false;
- updateClock();
  const p=bedApproach()[0];
  if(p){pet.position.x=p.x;pet.position.z=p.z}
  else{ensurePetSafeSpawn()}
  pet.position.y=.13;
+ pet.rotation.x=0;pet.rotation.z=0;
+ previousPetX=pet.position.x;previousPetZ=pet.position.z;
  if(!lightOn){lightOn=true;applyLighting()}
- updateClock();save();say('Mochi dinlendi! ☀️');
+ updateClock();refresh();save();
+ say(fullyRested?'Mochi enerjisini doldurdu, kendi uyandı! ☀️🐉':'Mochi uyandı! ☀️');
 }
 updateClock();
 let lastTime=0,crawlBlend=0,previousPetX=pet.position.x,previousPetZ=pet.position.z;
@@ -869,7 +871,11 @@ function frame(t){
    stats.clean=Math.max(0,stats.clean-movedDistance*.08);
    if(stats.energy<3&&!headingToBed)startRest(true);
   }
-  if(resting)stats.energy=Math.min(100,stats.energy+dt*2.2);
+  if(resting){
+    stats.energy=Math.min(100,stats.energy+dt*2.2);
+    // Enerji dolunca uyku biter: kalk, lambayı aç ve bakım kontrollerini geri getir.
+    if(stats.energy>=100){stats.energy=100;wakeUp(true)}
+  }
   if(t-lastNeedsSave>5000){lastNeedsSave=t;refresh();updateClock();save()}
   crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
   stepCycle+=movedDistance*8;
