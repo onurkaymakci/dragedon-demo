@@ -752,6 +752,7 @@ function approachToyDirect(dt){
 }
 function selectToyForMochi(preferredId=null){
  if(!mayPlayToys()||toyPlayingId)return false;
+ if(interactTarget||interactActive)cancelInteraction();
  const candidates=[...activeToys.entries()]
   .sort((a,b)=>Math.hypot(a[1].position.x-pet.position.x,a[1].position.z-pet.position.z)-
                  Math.hypot(b[1].position.x-pet.position.x,b[1].position.z-pet.position.z));
@@ -1462,7 +1463,7 @@ function exploreFurniture(f){
  if(stats.energy<6||stats.food<5){say('Mochi önce dinlenmek veya yemek istiyor 🐉');return false}
  cancelInteraction();toyTargetId=null;stopToyPlaying();
  for(const p of furnitureArrivalSpots(f)){
-  if(Math.hypot(pet.position.x-p.x,pet.position.z-p.z)<.25||planPetRoute(p.x,p.z)){
+  if(Math.hypot(pet.position.x-p.x,pet.position.z-p.z)<.15||planPetRoute(p.x,p.z)){
    interactTarget={id:f.userData.name,x:p.x,z:p.z,at:performance.now()};
    clearAttention();nextFurnitureExplore=performance.now()+19000;
    say('Mochi mobilyayı keşfetmeye gidiyor! 🐾');return true;
@@ -1989,6 +1990,7 @@ function bedApproach(){
 }
 function startRest(automatic=false){
  if(resting||headingToBed)return;
+ if(interactTarget||interactActive)cancelInteraction();
  toyTargetId=null;stopToyPlaying();petRoute=[];
  if(stats.energy>=95&&!automatic){say('Mochi zaten dinç! ⚡');return}
  for(const p of bedApproach()){
