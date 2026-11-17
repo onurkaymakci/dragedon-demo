@@ -39,7 +39,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.7</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.8</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -349,7 +349,7 @@ document.getElementById('lights').onclick=()=>{
   if(!lightOn){
     fear=Math.max(fear,75);
     darknessSeconds=0;
-    stats.joy=Math.max(0,stats.joy-18);
+    stats.joy=Math.max(0,stats.joy-25);
     triggerAttention(performance.now());
     say('Mochi karanlıktan korktu! 🥺 Işığı aç veya onu sev.');
   }else{
@@ -938,17 +938,17 @@ function frame(t){
   }else if(!headingToBed){
     // Aktif uyanıklıkta neşe daha belirgin azalır; uykuda korunur.
     awakeSeconds+=dt;
-    if(awakeSeconds>=15){
-      const intervals=Math.floor(awakeSeconds/15);
-      awakeSeconds-=intervals*15;
+    if(awakeSeconds>=10){
+      const intervals=Math.floor(awakeSeconds/10);
+      awakeSeconds-=intervals*10;
       stats.joy=Math.max(0,stats.joy-intervals*(stats.food<25?3:2));
     }
     // Karanlıkta korku canlıdır: sevgi rahatlatır ama ışık yoksa korku geri gelebilir.
     if(!lightOn){
       darknessSeconds+=dt;
-      if(darknessSeconds>=12){
-        const intervals=Math.floor(darknessSeconds/12);
-        darknessSeconds-=intervals*12;
+      if(darknessSeconds>=10){
+        const intervals=Math.floor(darknessSeconds/10);
+        darknessSeconds-=intervals*10;
         if(performance.now()-lastComfortAt>12000)fear=Math.min(100,fear+intervals*8);
         stats.joy=Math.max(0,stats.joy-intervals*2);
       }
