@@ -14,7 +14,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @media(max-width:600px){#top{top:8px;left:8px;right:8px;gap:7px}.card{padding:8px 10px;border-radius:12px}h1{font-size:15px}.stat{font-size:10px;margin-top:3px}.track{width:62px;height:6px}.subtitle{font-size:9px}#hint{top:104px;font-size:10px}#bar{bottom:8px;gap:6px}button{padding:10px 9px;font-size:11px;border-radius:12px}#toast{bottom:99px;max-width:90vw;white-space:normal;text-align:center}}
 </style></head><body>
 <div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Mobilyaları sürükle · Boş alanda kaydırarak kamerayı döndür</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="hint">Mobilyayı basılı tutup sürükle · Boş alanda kaydırarak kamerayı döndür</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
@@ -59,11 +59,111 @@ document.getElementById('play').onclick=()=>{stats.food=Math.max(0,stats.food-4)
 document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu! 🫧');
 document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);wall.material.color.set(themes[currentTheme][1]);wall2.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
-let ray=new THREE.Raycaster(),coords=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();let selected=null,startX=0,drag=false,petTarget=new THREE.Vector3(0,.13,0);
-function point(e){coords.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(coords,camera)}
-let lastTapX=0,lastTapY=0;renderer.domElement.addEventListener('pointerdown',e=>{lastTapX=e.clientX;lastTapY=e.clientY;point(e);selected=null;let intersects=ray.intersectObjects(furniture,true);if(intersects.length){let obj=intersects[0].object;while(obj.parent&&!obj.userData.name)obj=obj.parent;if(obj.userData.name)selected=obj}startX=e.clientX;drag=false;renderer.domElement.setPointerCapture(e.pointerId)});
-renderer.domElement.addEventListener('pointermove',e=>{if(e.buttons===0)return;let dx=e.clientX-startX;startX=e.clientX;drag=true;if(selected){point(e);if(ray.ray.intersectPlane(ground,hit)){selected.position.x=THREE.MathUtils.clamp(hit.x,-3.4,3.4);selected.position.z=THREE.MathUtils.clamp(hit.z,-3,2.9)}}else{camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),-dx*.004);camera.lookAt(0,1,0)}});
-renderer.domElement.addEventListener('pointerup',()=>{if(selected&&drag){save();say('Mobilyanın yeri kaydedildi! 🪑')}else if(!drag){point({clientX:lastTapX,clientY:lastTapY});if(ray.ray.intersectPlane(ground,hit)){petTarget.set(THREE.MathUtils.clamp(hit.x,-3.1,3.1),.13,THREE.MathUtils.clamp(hit.z,-2.8,2.7));say('Mochi oraya geliyor! 🐾')}}selected=null});
+// v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
+const ray=new THREE.Raycaster(), coords=new THREE.Vector2();
+const ground=new THREE.Plane(new THREE.Vector3(0,1,0),0), hit=new THREE.Vector3();
+const petTarget=new THREE.Vector3(0,.13,0);
+const HOLD_MS=350, MOVE_THRESHOLD=12;
+let gesture=null;
+function point(e){
+  coords.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);
+  ray.setFromCamera(coords,camera);
+}
+function furnitureAt(e){
+  point(e);
+  const hits=ray.intersectObjects(furniture,true);
+  if(!hits.length)return null;
+  let obj=hits[0].object;
+  while(obj.parent&&!obj.userData.name)obj=obj.parent;
+  return obj.userData.name?obj:null;
+}
+function groundAt(e,out){
+  point(e);
+  return ray.ray.intersectPlane(ground,out);
+}
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function overlapsOtherFurniture(f,x,z){
+  // Basit çarpışma payı: mobilyalar üst üste binmesin
+  const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
+  const own=sizes[f.userData.name]||[1,1];
+  return furniture.some(other=>{
+    if(other===f)return false;
+    const s=sizes[other.userData.name]||[1,1];
+    return Math.abs(x-other.position.x)<(own[0]+s[0])/2+.12 &&
+           Math.abs(z-other.position.z)<(own[1]+s[1])/2+.12;
+  });
+}
+function clearHold(){if(gesture?.timer){clearTimeout(gesture.timer);gesture.timer=null}}
+function moveFurniture(e){
+  if(!gesture?.item||!gesture.dragging)return;
+  if(!groundAt(e,hit))return;
+  const item=gesture.item;
+  // Nesnenin ilk tutulduğu yer sabit kalsın; merkeze ani sıçrama olmasın.
+  const x=THREE.MathUtils.clamp(hit.x+gesture.offset.x,-3.35,3.35);
+  const z=THREE.MathUtils.clamp(hit.z+gesture.offset.z,-2.85,2.8);
+  if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;}
+}
+renderer.domElement.addEventListener('pointerdown',e=>{
+  if(gesture)return;
+  const item=furnitureAt(e);
+  const start={x:e.clientX,y:e.clientY};
+  gesture={id:e.pointerId,start,last:start,item,armed:false,dragging:false,changed:false,canceled:false,timer:null,
+    offset:{x:0,z:0}, initial:item?item.position.clone():null};
+  if(item){
+    // 350ms bekle, ama kullanıcı parmağını erken oynatırsa taşıma iptal.
+    if(groundAt(e,hit)){gesture.offset.x=item.position.x-hit.x;gesture.offset.z=item.position.z-hit.z;}
+    const id=e.pointerId;
+    gesture.timer=setTimeout(()=>{
+      if(gesture&&gesture.id===id&&!gesture.canceled){
+        gesture.armed=true;
+        say('Taşımak için parmağını kaydır 🪑');
+      }
+    },HOLD_MS);
+  }
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+  if(!gesture||gesture.id!==e.pointerId)return;
+  const next={x:e.clientX,y:e.clientY};
+  const moved=distance(next,gesture.start);
+  if(gesture.item){
+    if(!gesture.armed){
+      if(moved>MOVE_THRESHOLD){gesture.canceled=true;clearHold();}
+      gesture.last=next;
+      return;
+    }
+    if(!gesture.dragging&&moved>MOVE_THRESHOLD)gesture.dragging=true;
+    moveFurniture(e);
+  }else{
+    if(moved>MOVE_THRESHOLD)gesture.dragging=true;
+    if(gesture.dragging){
+      const dx=next.x-gesture.last.x;
+      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),-dx*.004);
+      camera.lookAt(0,1,0);
+    }
+  }
+  gesture.last=next;
+});
+function finishPointer(e,cancel=false){
+  if(!gesture||gesture.id!==e.pointerId)return;
+  clearHold();
+  const g=gesture;gesture=null;
+  if(g.item){
+    if(cancel&&g.initial)g.item.position.copy(g.initial);
+    else if(g.changed){save();say('Mobilyanın yeri kaydedildi! 🪑');}
+    else if(!g.canceled&&!g.dragging)say('Mobilyayı taşımak için basılı tut 🖐️');
+    return; // Mobilyaya tıklamak evcil hayvanı yürütmesin.
+  }
+  if(!cancel&&!g.dragging&&distance({x:e.clientX,y:e.clientY},g.start)<=MOVE_THRESHOLD){
+    if(groundAt(e,hit)){
+      petTarget.set(THREE.MathUtils.clamp(hit.x,-3.1,3.1),.13,THREE.MathUtils.clamp(hit.z,-2.8,2.7));
+      say('Mochi oraya geliyor! 🐾');
+    }
+  }
+}
+renderer.domElement.addEventListener('pointerup',e=>finishPointer(e));
+renderer.domElement.addEventListener('pointercancel',e=>finishPointer(e,true));
+renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,true));
 function isSleeping(){const n=new Date();const h=n.getHours()+n.getMinutes()/60;return h>=22.5||h<7.5}
 function updateClock(){const sleeping=isSleeping();document.getElementById('clock').textContent=sleeping?'🌙':'☀️';document.getElementById('mood').textContent=sleeping?'Mochi uyuyor':'Mochi mutlu';}
 updateClock();
