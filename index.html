@@ -22,10 +22,10 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #bar{padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(max-width:600px){#roomActions{bottom:81px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}#hint{top:105px;font-size:10px}#toast{bottom:125px;max-width:80vw}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
-<div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
+<div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="rest">🛏️ Dinlen</button><button id="lights">💡 Işık</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
@@ -213,12 +213,28 @@ leftDoorPivot.rotation.y=-wardrobeDoorProgress*1.35;
 rightDoorPivot.rotation.y=wardrobeDoorProgress*1.35;
 // İlk sürümde yalnızca bebek animasyonu açık; ilerleme sistemi sonraki aşamada.
 babyStage='baby';
-let stats=saved.stats||{food:70,joy:80,clean:75};
+let stats={food:70,joy:80,clean:75,energy:85,...(saved.stats||{})};
+for(const k of ['food','joy','clean','energy'])stats[k]=THREE.MathUtils.clamp(Number(stats[k])||0,0,100);
+let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=false;
+let lastNeedsSave=0;
+const ambientLight=scene.children.find(o=>o.isHemisphereLight);
+const mainLight=scene.children.find(o=>o.isDirectionalLight);
+function applyLighting(){
+ if(ambientLight)ambientLight.intensity=lightOn?2.5:.35;
+ if(mainLight)mainLight.intensity=lightOn?2:.08;
+ scene.background.set(lightOn?'#cac5e8':'#24243f');
+ document.getElementById('lights').textContent=lightOn?'🌙 Işığı kapat':'💡 Işığı aç';
+}
+applyLighting();
+
 currentTheme=Number.isInteger(saved.theme)?saved.theme%themes.length:0;
 floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);const toast=document.getElementById('toast');
-function say(s){toast.textContent=s}function refresh(){for(let k of Object.keys(stats))document.getElementById(k).style.width=stats[k]+'%'}
+function say(s){toast.textContent=s}
+function refresh(){
+ for(const k of ['food','joy','clean','energy'])document.getElementById(k).style.width=THREE.MathUtils.clamp(stats[k],0,100)+'%';
+}
 function save(){
- const data={stats,theme:currentTheme};
+ const data={stats,theme:currentTheme,lightOn};
  for(const f of furniture)data[f.userData.name]=[f.position.x,f.position.z,f.rotation.y];
  for(const d of wallDecor){
    const side=d.userData.side;
@@ -230,8 +246,26 @@ function save(){
 }
 function act(k,n,message){stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300)}
 document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
-document.getElementById('play').onclick=()=>{stats.food=Math.max(0,stats.food-4);act('joy',20,'Mochi çok eğlendi! 🎾')};
+document.getElementById('play').onclick=()=>{
+ if(resting||headingToBed){say('Mochi önce dinlenmesini bitirsin 💤');return}
+ if(stats.energy<9){say('Mochi oyun için çok yorgun! Yatağına götür 🛏️');startRest(true);return}
+ if(stats.food<8){say('Mochi acıktı, önce besle 🍓');return}
+ stats.food=Math.max(0,stats.food-7);
+ stats.energy=Math.max(0,stats.energy-13);
+ stats.clean=Math.max(0,stats.clean-3);
+ act('joy',20,'Mochi oynadı, biraz yoruldu ve acıktı! 🎾');
+ if(stats.energy<12)startRest(true);
+};
 document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu! 🫧');
+document.getElementById('lights').onclick=()=>{
+ lightOn=!lightOn;applyLighting();save();
+ say(lightOn?'Işıklar açıldı ☀️':'Işıklar kapandı 🌙');
+};
+document.getElementById('rest').onclick=()=>{
+ if(resting){wakeUp();return}
+ if(headingToBed){headingToBed=false;autoRest=false;petRoute=[];say('Mochi yataktan vazgeçti 🐾');updateClock();return}
+ startRest(false);
+};
 document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
 // v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
@@ -665,7 +699,8 @@ function finishPointer(e,cancel=false){
     if(cancel&&g.initial){g.item.position.copy(g.initial.position);g.item.rotation.y=g.initial.rotation;}
     else if(g.changed){save();say(g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
     else if(!g.canceled&&!g.dragging){
-      if(g.item===wardrobe)toggleWardrobe();
+      if(g.item===bed&&!editMode){startRest(false)}
+      else if(g.item===wardrobe)toggleWardrobe();
       else if(g.item===rug)say('Halıyı ↻ düğmesiyle döndürebilirsin');
       else say('Mobilyayı taşımak için basılı tut 🖐️');
     }
@@ -673,7 +708,9 @@ function finishPointer(e,cancel=false){
   }
   if(!cancel&&!g.dragging&&distance({x:e.clientX,y:e.clientY},g.start)<=MOVE_THRESHOLD){
     if(g.onPet||petAt(e)){reactToPet();return}
-    if(isSleeping()){say('Mochi şu an dinleniyor 🌙');return}
+    if(resting){say('Mochi dinleniyor. Uyandır düğmesine dokun 💤');return}
+    if(headingToBed){say('Mochi yatağına gidiyor 🛏️');return}
+    if(stats.energy<3){startRest(true);return}
     point(e);
     const floorHits=ray.intersectObject(floor,false);
     if(floorHits.length){
@@ -686,8 +723,52 @@ function finishPointer(e,cancel=false){
 renderer.domElement.addEventListener('pointerup',e=>finishPointer(e));
 renderer.domElement.addEventListener('pointercancel',e=>finishPointer(e,true));
 renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,true));
-function isSleeping(){const n=new Date();const h=n.getHours()+n.getMinutes()/60;return h>=22.5||h<7.5}
-function updateClock(){const sleeping=isSleeping();document.getElementById('clock').textContent=sleeping?'🌙':'☀️';document.getElementById('mood').textContent=sleeping?'Mochi uyuyor':'Mochi mutlu';}
+function isSleeping(){return resting}
+function updateClock(){
+ document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
+ document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':'Mochi mutlu';
+ document.getElementById('rest').textContent=resting?'☀️ Uyandır':headingToBed?'✋ Vazgeç':'🛏️ Dinlen';
+}
+function bedApproach(){
+ const candidates=[];
+ const halfW=1.0,halfD=.675;
+ for(const [dx,dz] of [[0,-1],[0,1],[-1,0],[1,0]]){
+  const local=new THREE.Vector3(dx*(halfW+.85),0,dz*(halfD+.85));
+  local.applyAxisAngle(new THREE.Vector3(0,1,0),bed.rotation.y);
+  const x=bed.position.x+local.x,z=bed.position.z+local.z;
+  if(petCellFree(x,z))candidates.push({x,z});
+ }
+ candidates.sort((a,b)=>Math.hypot(a.x-pet.position.x,a.z-pet.position.z)-Math.hypot(b.x-pet.position.x,b.z-pet.position.z));
+ return candidates;
+}
+function startRest(automatic=false){
+ if(resting||headingToBed)return;
+ if(stats.energy>=95&&!automatic){say('Mochi zaten dinç! ⚡');return}
+ for(const p of bedApproach()){
+  if(planPetRoute(p.x,p.z)){
+   headingToBed=true;autoRest=automatic;
+   say('Mochi yatağına gidiyor 🛏️');updateClock();return;
+  }
+ }
+ say('Mochi yatağına ulaşamıyor, yatağın çevresini aç 🪑');
+}
+function lieDown(){
+ headingToBed=false;resting=true;petRoute=[];
+ pet.position.x=bed.position.x;pet.position.z=bed.position.z;
+ pet.position.y=.59;pet.rotation.y=bed.rotation.y;
+ if(lightOn){lightOn=false;applyLighting()}
+ save();updateClock();say('Mochi uyudu, enerji kazanıyor 💤');
+}
+function wakeUp(){
+ if(!resting)return;
+ resting=false;autoRest=false;
+ const p=bedApproach()[0];
+ if(p){pet.position.x=p.x;pet.position.z=p.z}
+ else{ensurePetSafeSpawn()}
+ pet.position.y=.13;
+ if(!lightOn){lightOn=true;applyLighting()}
+ updateClock();save();say('Mochi dinlendi! ☀️');
+}
 updateClock();
 let lastTime=0,crawlBlend=0,previousPetX=pet.position.x,previousPetZ=pet.position.z;
 function frame(t){
@@ -698,7 +779,7 @@ function frame(t){
   if(!sleeping&&petRoute.length){
     const wp=petRoute[0],dx=wp.x-pet.position.x,dz=wp.z-pet.position.z;
     const dist=Math.hypot(dx,dz);
-    if(dist<.035)petRoute.shift();
+    if(dist<.035){petRoute.shift();if(headingToBed&&!petRoute.length)lieDown()}
     else{
       const speed=babyStage==='baby'?.95:1.25;
       const step=Math.min(dist,dt*speed);
@@ -712,16 +793,30 @@ function frame(t){
     }
   }
   // Yumuşak emekleme: ritim gerçek ilerlenen mesafeden türetilir.
-  const movedDistance=Math.hypot(pet.position.x-previousPetX,pet.position.z-previousPetZ);
+  const movedDistance=moving?Math.hypot(pet.position.x-previousPetX,pet.position.z-previousPetZ):0;
   previousPetX=pet.position.x;previousPetZ=pet.position.z;
+  if(moving){
+   stats.energy=Math.max(0,stats.energy-movedDistance*.65);
+   stats.food=Math.max(0,stats.food-movedDistance*.28);
+   stats.clean=Math.max(0,stats.clean-movedDistance*.08);
+   if(stats.energy<3&&!headingToBed)startRest(true);
+  }
+  if(resting)stats.energy=Math.min(100,stats.energy+dt*2.2);
+  if(t-lastNeedsSave>5000){lastNeedsSave=t;refresh();updateClock();save()}
   crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
   stepCycle+=movedDistance*8;
   const reactionTime=t-petReactionStart,reacting=!sleeping&&reactionTime>=0&&reactionTime<750;
   const jump=reacting&&petReactionKind==='jump'?Math.sin(Math.PI*reactionTime/750)*.28:0;
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
   const crawlBounce=crawlBlend*.009*(1-Math.cos(stepCycle*2));
-  pet.position.y=.13+(sleeping?0:crawlBounce+.012*Math.sin(t*.002))+jump;
-  pet.rotation.z=tilt;
+  pet.position.y=(resting?.59:.13)+(sleeping?0:crawlBounce+.012*Math.sin(t*.002))+jump;
+  if(resting){
+    pet.rotation.z=.16;
+    pet.rotation.x=.08;
+  }else{
+    pet.rotation.z=tilt;
+    pet.rotation.x=0;
+  }
   if(babyStage==='baby'){
     // Çapraz kollar sırayla öne ve arkaya gider; zeminle temas kontrollüdür.
     const stride=.13*crawlBlend;
