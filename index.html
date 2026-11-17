@@ -14,13 +14,25 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @media(max-width:600px){#top{top:8px;left:8px;right:8px;gap:7px}.card{padding:8px 10px;border-radius:12px}h1{font-size:15px}.stat{font-size:10px;margin-top:3px}.track{width:62px;height:6px}.subtitle{font-size:9px}#hint{top:104px;font-size:10px}#bar{bottom:8px;gap:6px}button{padding:10px 9px;font-size:11px;border-radius:12px}#toast{bottom:99px;max-width:90vw;white-space:normal;text-align:center}}
 </style></head><body>
 <div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Mobilyayı basılı tutup sürükle · Boş alanda kaydırarak kamerayı döndür</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="hint">Mobilyaya basılı tut · 2 parmakla yakınlaştır · Boş alanda kaydır</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.1,100);
-function placeCamera(){const portrait=innerHeight>innerWidth; camera.position.set(portrait?10:7,portrait?9:7,portrait?14:10); camera.lookAt(0,1,0)}
+const CAMERA_TARGET=new THREE.Vector3(0,1,0);
+const CAMERA_MIN=7.5,CAMERA_MAX=24;
+const CAMERA_MIN_ANGLE=-.10,CAMERA_MAX_ANGLE=.70;
+let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?18.8:13.4;
+const CAMERA_ELEVATION=.43;
+function updateCamera(){
+ cameraAngle=THREE.MathUtils.clamp(cameraAngle,CAMERA_MIN_ANGLE,CAMERA_MAX_ANGLE);
+ cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
+ const h=cameraDistance*Math.cos(CAMERA_ELEVATION);
+ camera.position.set(Math.sin(cameraAngle)*h,CAMERA_TARGET.y+Math.sin(CAMERA_ELEVATION)*cameraDistance,Math.cos(cameraAngle)*h);
+ camera.lookAt(CAMERA_TARGET);
+}
+function placeCamera(){updateCamera()}
 placeCamera();
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight('#ffffff','#8e82b3',2.5));let light=new THREE.DirectionalLight('#ffffff',2);light.position.set(-3,8,7);scene.add(light);
@@ -137,6 +149,12 @@ function planPetRoute(x,z){
   return petRoute.length>0;
 }
 const HOLD_MS=350, MOVE_THRESHOLD=12;
+const activeTouches=new Map();
+let pinchDistance=0,blockTapUntilAllUp=false;
+function touchDistance(){
+ const t=[...activeTouches.values()];
+ return t.length<2?0:Math.hypot(t[0].x-t[1].x,t[0].y-t[1].y);
+}
 let gesture=null;
 function point(e){
   coords.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);
@@ -187,7 +205,15 @@ function moveFurniture(e){
   if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;petRoute=[];}
 }
 renderer.domElement.addEventListener('pointerdown',e=>{
-  if(gesture)return;
+  activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{renderer.domElement.setPointerCapture(e.pointerId)}catch{}
+  if(activeTouches.size>=2){
+    clearHold();
+    if(gesture){gesture.canceled=true;gesture.dragging=true;gesture=null}
+    blockTapUntilAllUp=true;pinchDistance=touchDistance();
+    return;
+  }
+  if(blockTapUntilAllUp||gesture)return;
   const onPet=petAt(e);
   const item=onPet?null:furnitureAt(e);
   const start={x:e.clientX,y:e.clientY};
@@ -204,10 +230,18 @@ renderer.domElement.addEventListener('pointerdown',e=>{
       }
     },HOLD_MS);
   }
-  renderer.domElement.setPointerCapture(e.pointerId);
 });
 renderer.domElement.addEventListener('pointermove',e=>{
-  if(!gesture||gesture.id!==e.pointerId)return;
+  if(activeTouches.has(e.pointerId))activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activeTouches.size>=2){
+    const next=touchDistance();
+    if(next>0&&pinchDistance>0){
+      cameraDistance*=THREE.MathUtils.clamp(pinchDistance/next,.70,1.3);
+      updateCamera();
+    }
+    pinchDistance=next;return;
+  }
+  if(blockTapUntilAllUp||!gesture||gesture.id!==e.pointerId)return;
   const next={x:e.clientX,y:e.clientY};
   const moved=distance(next,gesture.start);
   if(gesture.item){
@@ -222,13 +256,16 @@ renderer.domElement.addEventListener('pointermove',e=>{
     if(moved>MOVE_THRESHOLD)gesture.dragging=true;
     if(gesture.dragging){
       const dx=next.x-gesture.last.x;
-      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),-dx*.004);
-      camera.lookAt(0,1,0);
+      cameraAngle-=dx*.0035;
+      updateCamera();
     }
   }
   gesture.last=next;
 });
 function finishPointer(e,cancel=false){
+  activeTouches.delete(e.pointerId);
+  if(activeTouches.size<2)pinchDistance=0;
+  if(blockTapUntilAllUp){if(activeTouches.size===0)blockTapUntilAllUp=false;return}
   if(!gesture||gesture.id!==e.pointerId)return;
   clearHold();
   const g=gesture;gesture=null;
