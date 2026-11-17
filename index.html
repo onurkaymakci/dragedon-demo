@@ -258,18 +258,16 @@ function frame(t){
   const reactionTime=t-petReactionStart,reacting=!sleeping&&reactionTime>=0&&reactionTime<750;
   const jump=reacting&&petReactionKind==='jump'?Math.sin(Math.PI*reactionTime/750)*.28:0;
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
-  pet.position.y=.13+(sleeping?0:moving?.065*Math.abs(Math.sin(stepCycle)):.025*Math.sin(t*.002))+jump;
+  pet.position.y=.13+(sleeping?0:moving ? .065*Math.abs(Math.sin(stepCycle)) : .025*Math.sin(t*.002))+jump;
   pet.rotation.z=tilt;
   // Rastgele göz kırpma ve dokunmaya özel göz kırpma
   if(t>nextBlink){blinkAt=t;nextBlink=t+2300+Math.random()*3200}
   const blinkElapsed=t-blinkAt;
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
-  const eyeHeight=blinking?.12:1;
+  const eyeHeight=blinking ? .12 : 1;
   for(const eye of [leftEye,rightEye,leftShine,rightShine])eye.scale.y=eyeHeight;
   renderer.render(scene,camera);
 }
-requestAnimationFrame(frame);const dt=Math.min((t-lastTime)/1000,.05);lastTime=t;
-if(!isSleeping()){const dx=petTarget.x-pet.position.x,dz=petTarget.z-pet.position.z,dist=Math.hypot(dx,dz);if(dist>.07){const step=Math.min(dist,dt*1.2);pet.position.x+=dx/dist*step;pet.position.z+=dz/dist*step;pet.rotation.y=Math.atan2(dx,dz)*.18;}}
-pet.position.y=.13+(isSleeping()?0:.04*Math.sin(t*.003));renderer.render(scene,camera)}requestAnimationFrame(frame);
+requestAnimationFrame(frame);
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();placeCamera();renderer.setSize(innerWidth,innerHeight)});refresh();
 </script></body></html>
