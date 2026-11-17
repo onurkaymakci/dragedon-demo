@@ -22,9 +22,9 @@ const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.1,100);
 // Kamera uzaktayken odayı, yakındayken Mochi'yi merkez alır.
 const CAMERA_TARGET=new THREE.Vector3(0,1.05,0);
-const CAMERA_MIN=6.8,CAMERA_MAX=24;
-const CAMERA_MIN_ANGLE=-.10,CAMERA_MAX_ANGLE=.70;
-let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?18.8:13.4;
+const CAMERA_MIN=6.5,CAMERA_MAX=29;
+const CAMERA_MIN_ANGLE=-Math.PI*4,CAMERA_MAX_ANGLE=Math.PI*4;
+let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?23.5:17.2;
 const CAMERA_ELEVATION=.43;
 function focusCamera(dt=0){
   if(typeof pet==='undefined')return;
@@ -39,11 +39,13 @@ function focusCamera(dt=0){
   CAMERA_TARGET.z=THREE.MathUtils.lerp(CAMERA_TARGET.z,desiredZ,lerp);
 }
 function updateCamera(){
- cameraAngle=THREE.MathUtils.clamp(cameraAngle,CAMERA_MIN_ANGLE,CAMERA_MAX_ANGLE);
  cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
+ // Kamera tam tur döner, açı değerinin sonsuza kadar büyümesini önle.
+ if(Math.abs(cameraAngle)>Math.PI*2)cameraAngle=Math.atan2(Math.sin(cameraAngle),Math.cos(cameraAngle));
  const h=cameraDistance*Math.cos(CAMERA_ELEVATION);
  camera.position.set(Math.sin(cameraAngle)*h,CAMERA_TARGET.y+Math.sin(CAMERA_ELEVATION)*cameraDistance,Math.cos(cameraAngle)*h);
  camera.lookAt(CAMERA_TARGET);
+ if(typeof updateWallVisibility==='function')updateWallVisibility();
 }
 function placeCamera(){updateCamera()}
 placeCamera();
@@ -53,22 +55,56 @@ const material=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
 function box(g,w,h,d,c,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(c));m.position.set(x,y,z);g.add(m);return m}
 function ball(g,r,c,x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material(c));m.position.set(x,y,z);g.add(m);return m}
 const themes=[['#ebdaf2','#e2c8ed'],['#d8efe2','#bddcce'],['#eee2cd','#ddcaad']];let currentTheme=0;
-const floor=box(scene,8,.2,7,themes[0][0],0,-.15,0),wall=box(scene,8,4,.12,themes[0][1],0,1.85,-3.5),wall2=box(scene,.12,4,7,themes[0][1],-4,1.85,0);
-box(scene,2.8,.05,1.8,'#fbefda',.2,.01,1.2);
-// Oda detayları: pencere, çerçeve, duvar rafı ve küçük dekorlar
-box(scene,1.65,1.35,.08,'#f9f1ff',.4,2.7,-3.37);
-box(scene,1.42,1.1,.085,'#9cd6e4',.4,2.7,-3.31);
-box(scene,.08,1.1,.10,'#fff4fa',.4,2.7,-3.24);
-box(scene,1.42,.075,.10,'#fff4fa',.4,2.7,-3.24);
-box(scene,1.6,.12,.4,'#e6b899',.4,2.02,-3.15);
-box(scene,1.0,.12,.35,'#f2cca6',-2.8,2.2,-3.12);
-ball(scene,.18,'#ffcbe2',-2.85,2.44,-3.12);
-ball(scene,.13,'#b7e9ba',-2.45,2.40,-3.1);
+// Sprint 4.1: Dört tam duvar, geniş 11 x 10 oda ve duvara bağlı dekorlar.
+const ROOM_HALF_X=5.5,ROOM_HALF_Z=5;
+const floor=box(scene,11,.2,10,themes[0][0],0,-.15,0);
+const wallGroups={};
+function makeWall(name){
+  const g=new THREE.Group();g.userData.wall=name;scene.add(g);wallGroups[name]=g;return g;
+}
+const backWall=makeWall('back'),frontWall=makeWall('front'),leftWall=makeWall('left'),rightWall=makeWall('right');
+const wall=box(backWall,11,4.4,.14,themes[0][1],0,2.05,-ROOM_HALF_Z);
+const wallFront=box(frontWall,11,4.4,.14,themes[0][1],0,2.05,ROOM_HALF_Z);
+const wall2=box(leftWall,.14,4.4,10,themes[0][1],-ROOM_HALF_X,2.05,0);
+const wallRight=box(rightWall,.14,4.4,10,themes[0][1],ROOM_HALF_X,2.05,0);
+// Dört duvar hep bulunur; kamera önündeki yakın duvarlar görüntüden gizlenir.
+function updateWallVisibility(){
+  const dx=camera.position.x-CAMERA_TARGET.x;
+  const dz=camera.position.z-CAMERA_TARGET.z;
+  // Ekranı engelleyen duvarın kendisi ve üzerindeki dekor birlikte gizlenir.
+  wallGroups.right.visible=dx<0;
+  wallGroups.left.visible=dx>=0;
+  wallGroups.front.visible=dz<0;
+  wallGroups.back.visible=dz>=0;
+}
+updateWallVisibility();
+// Zeminde geniş merkezi oyun halısı; taşınabilirlik sprint 4.3 kapsamında.
+const rug=box(scene,3.8,.045,2.7,'#f8eade',0,.005,.65);
+box(scene,3.48,.012,2.42,'#f1d4de',0,.034,.65);
+// Arka duvarda pencere, raf, yıldız ve saksı.
+box(backWall,2.2,1.55,.09,'#f9f1ff',.2,2.95,-4.88);
+box(backWall,1.97,1.30,.09,'#9cd6e4',.2,2.95,-4.82);
+box(backWall,.08,1.3,.11,'#fff4fa',.2,2.95,-4.76);
+box(backWall,1.97,.08,.11,'#fff4fa',.2,2.95,-4.76);
+box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-4.69);
+box(backWall,1.28,.14,.36,'#f2cca6',-3.6,2.35,-4.65);
+ball(backWall,.19,'#ffcbe2',-3.8,2.61,-4.6);
+ball(backWall,.14,'#b7e9ba',-3.35,2.58,-4.6);
+// Sol duvarda resim çerçeveleri.
+box(leftWall,.10,1.12,1.04,'#fff8ed',-5.36,2.70,-1.7);
+box(leftWall,.11,.86,.80,'#c8b4ed',-5.29,2.70,-1.7);
+box(leftWall,.1,.85,.75,'#f8e8f6',-5.36,2.62,1.2);
+// Sağ duvarda aplik ve raf.
+box(rightWall,.15,.75,1.35,'#ecd4bd',5.34,2.95,-1.6);
+ball(rightWall,.24,'#ffdf8a',5.18,3.0,-1.6);
+box(rightWall,.48,.12,1.55,'#dcb49d',5.13,2.1,1.35);
+// Ön duvar da mevcut: üstünde küçük yıldız dekoru.
+ball(frontWall,.26,'#f6c5d7',-2.3,3.1,4.84);
 const furniture=[];
 function item(name,x,z){let group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
-let bed=item('bed',-1.8,-1);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
-let wardrobe=item('wardrobe',2,-1.9);box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);box(wardrobe,.03,2.3,.03,'#805638',0,1.3,.42);ball(wardrobe,.06,'#f6df9b',-.14,1.3,.46);ball(wardrobe,.06,'#f6df9b',.14,1.3,.46);
-let chest=item('chest',1.8,1);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
+let bed=item('bed',-3.3,-2.75);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
+let wardrobe=item('wardrobe',3.45,-3.45);box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);box(wardrobe,.03,2.3,.03,'#805638',0,1.3,.42);ball(wardrobe,.06,'#f6df9b',-.14,1.3,.46);ball(wardrobe,.06,'#f6df9b',.14,1.3,.46);
+let chest=item('chest',3.4,2.4);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
 let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);
 // Daha geniş ve görünmez dokunma alanı
 const petHitbox=new THREE.Mesh(new THREE.SphereGeometry(.85,18,12),
@@ -84,14 +120,14 @@ const key='dragedon-demo-save-v1';let saved={};try{saved=JSON.parse(localStorage
 for(let f of furniture)if(saved[f.userData.name]){f.position.x=saved[f.userData.name][0];f.position.z=saved[f.userData.name][1]}
 let stats=saved.stats||{food:70,joy:80,clean:75};
 currentTheme=Number.isInteger(saved.theme)?saved.theme%themes.length:0;
-floor.material.color.set(themes[currentTheme][0]);wall.material.color.set(themes[currentTheme][1]);wall2.material.color.set(themes[currentTheme][1]);const toast=document.getElementById('toast');
+floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);const toast=document.getElementById('toast');
 function say(s){toast.textContent=s}function refresh(){for(let k of Object.keys(stats))document.getElementById(k).style.width=stats[k]+'%'}
 function save(){let data={stats,theme:currentTheme};for(let f of furniture)data[f.userData.name]=[f.position.x,f.position.z];localStorage.setItem(key,JSON.stringify(data))}
 function act(k,n,message){stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300)}
 document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
 document.getElementById('play').onclick=()=>{stats.food=Math.max(0,stats.food-4);act('joy',20,'Mochi çok eğlendi! 🎾')};
 document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu! 🫧');
-document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);wall.material.color.set(themes[currentTheme][1]);wall2.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
+document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
 // v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
 const ray=new THREE.Raycaster(), coords=new THREE.Vector2();
@@ -108,7 +144,7 @@ function reactToPet(){
   say(petPhrases[Math.floor(Math.random()*petPhrases.length)]);
 }
 // Oda sınırları ve mobilya çevresinde basit ızgara yol bulma
-const PET_RADIUS=.55,GRID=.25,MIN_X=-3.45,MAX_X=3.45,MIN_Z=-2.85,MAX_Z=2.85;
+const PET_RADIUS=.55,GRID=.30,MIN_X=-4.95,MAX_X=4.95,MIN_Z=-4.45,MAX_Z=4.45;
 function petCellFree(x,z){
   if(x<MIN_X||x>MAX_X||z<MIN_Z||z>MAX_Z)return false;
   const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
@@ -213,8 +249,8 @@ function moveFurniture(e){
   if(!groundAt(e,hit))return;
   const item=gesture.item;
   // Nesnenin ilk tutulduğu yer sabit kalsın; merkeze ani sıçrama olmasın.
-  const x=THREE.MathUtils.clamp(hit.x+gesture.offset.x,-3.35,3.35);
-  const z=THREE.MathUtils.clamp(hit.z+gesture.offset.z,-2.85,2.8);
+  const x=THREE.MathUtils.clamp(hit.x+gesture.offset.x,-4.85,4.85);
+  const z=THREE.MathUtils.clamp(hit.z+gesture.offset.z,-4.35,4.35);
   if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;petRoute=[];}
 }
 renderer.domElement.addEventListener('pointerdown',e=>{
