@@ -20,12 +20,35 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #roomActions.is-playing #editTools{display:none}
 #hint{background:#24203988;border-radius:18px;padding:6px 9px;max-width:90vw;margin:auto}
 #bar{padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(max-width:600px){#roomActions{bottom:114px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}#hint{top:131px;font-size:10px}#toast{bottom:160px;max-width:80vw}#bar{bottom:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}#bar button{min-width:0;padding:10px 3px;font-size:10px}}
+@media(max-width:600px){#roomActions{bottom:132px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}#hint{top:131px;font-size:10px}#toast{bottom:180px;max-width:80vw}#bar{bottom:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}#bar button{min-width:0;padding:8px 3px;font-size:10px}}
+/* v0.6.1 — çocuk dostu, ikon odaklı bakım çubuğu */
+#bar .care-btn{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;min-width:64px;padding:8px 12px;line-height:1.1;touch-action:manipulation}
+#bar .care-icon{font-size:23px;line-height:1.15}
+#bar .care-label{font-size:11px;font-weight:750;letter-spacing:.1px}
+#bar #reset{background:#e9e0ed}
+#bar #rest{background:#fff1d3}
+#bar #lights{background:#e2eafc}
+#sleepZzz{position:fixed;display:none;z-index:2;pointer-events:none;white-space:nowrap;filter:drop-shadow(0 2px 3px #29203a99);transform:translate(-50%,-50%);color:#fff3ff}
+#sleepZzz span{display:inline-block;font-family:system-ui,sans-serif;font-weight:900;text-shadow:0 2px 4px #323053;animation:floatZ 2.7s ease-in-out infinite}
+#sleepZzz span:nth-child(1){font-size:19px;animation-delay:0s}
+#sleepZzz span:nth-child(2){font-size:25px;animation-delay:.55s}
+#sleepZzz span:nth-child(3){font-size:33px;animation-delay:1.05s}
+@keyframes floatZ{0%,100%{transform:translateY(8px) scale(.8);opacity:.25}45%{transform:translateY(-16px) scale(1.1);opacity:1}80%{transform:translateY(-28px) scale(1);opacity:.4}}
+@media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
 <div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
-<div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="rest">🛏️ Dinlen</button><button id="lights">💡 Işık</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
+<div id="bar" aria-label="Mochi bakım kontrolleri">
+<button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
+<button class="care-btn" id="play" aria-label="Oyna" title="Oyna"><span class="care-icon">🎾</span><span class="care-label">Oyna</span></button>
+<button class="care-btn" id="rest" aria-label="Uyut" title="Uyut"><span class="care-icon">😴</span><span class="care-label">Uyu</span></button>
+<button class="care-btn" id="lights" aria-label="Işığı kapat" title="Işığı kapat"><span class="care-icon">🌙</span><span class="care-label">Kapat</span></button>
+<button class="care-btn" id="wash" aria-label="Temizle" title="Temizle"><span class="care-icon">🛁</span><span class="care-label">Temizle</span></button>
+<button class="care-btn" id="theme" aria-label="Tema değiştir" title="Tema değiştir"><span class="care-icon">🎨</span><span class="care-label">Tema</span></button>
+<button class="care-btn" id="reset" aria-label="Oyunu sıfırla" title="Oyunu sıfırla"><span class="care-icon">↺</span><span class="care-label">Sıfırla</span></button>
+</div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
@@ -184,6 +207,14 @@ const rightEye=ball(headRig,.12,'#28374b',.21,1.19,.60);
 const leftShine=ball(headRig,.04,'#ffffff',-.24,1.24,.67);
 const rightShine=ball(headRig,.04,'#ffffff',.18,1.24,.67);
 const nose=ball(headRig,.09,'#f4a5b4',0,1.00,.68);
+// Uyurken göz küreleri yerine iki ince, kapalı göz çizgisi göster.
+const sleepLidMaterial=material('#354154');
+const closedLeftEye=box(headRig,.25,.035,.037,'#354154',-.21,1.19,.603);
+const closedRightEye=box(headRig,.25,.035,.037,'#354154',.21,1.19,.603);
+closedLeftEye.visible=false;closedRightEye.visible=false;
+const sleepZzz=document.getElementById('sleepZzz');
+const sleepAnchor=new THREE.Vector3();
+let sleepPose=0;
 for(const x of [-.3,.3]){
  const ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.52,12),material('#908fd9'));
  ear.position.set(x,1.52,.10);ear.rotation.z=x<0?.2:-.2;headRig.add(ear);
@@ -219,11 +250,18 @@ let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=fals
 let lastNeedsSave=0;
 const ambientLight=scene.children.find(o=>o.isHemisphereLight);
 const mainLight=scene.children.find(o=>o.isDirectionalLight);
+function updateCareButton(id,emoji,label,accessibility){
+ const button=document.getElementById(id);
+ button.querySelector('.care-icon').textContent=emoji;
+ button.querySelector('.care-label').textContent=label;
+ button.setAttribute('aria-label',accessibility);
+ button.title=accessibility;
+}
 function applyLighting(){
  if(ambientLight)ambientLight.intensity=lightOn?2.5:.35;
  if(mainLight)mainLight.intensity=lightOn?2:.08;
  scene.background.set(lightOn?'#cac5e8':'#24243f');
- document.getElementById('lights').textContent=lightOn?'🌙 Işığı kapat':'💡 Işığı aç';
+ updateCareButton('lights',lightOn?'🌙':'💡',lightOn?'Kapat':'Aç',lightOn?'Işığı kapat':'Işığı aç');
 }
 applyLighting();
 
@@ -727,7 +765,9 @@ function isSleeping(){return resting}
 function updateClock(){
  document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
  document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':'Mochi mutlu';
- document.getElementById('rest').textContent=resting?'☀️ Uyandır':headingToBed?'✋ Vazgeç':'🛏️ Dinlen';
+ if(resting)updateCareButton('rest','☀️','Uyandır','Mochi’yi uyandır');
+ else if(headingToBed)updateCareButton('rest','✋','Vazgeç','Yatağa gitmeyi iptal et');
+ else updateCareButton('rest','😴','Uyu','Mochi’yi yatağında uyut');
 }
 function bedApproach(){
  const candidates=[];
@@ -840,10 +880,32 @@ function frame(t){
   updateCamera();
   // Rastgele göz kırpma ve dokunmaya özel göz kırpma
   if(t>nextBlink){blinkAt=t;nextBlink=t+2300+Math.random()*3200}
+  // Dinlenirken düzenli nefes alma, kapalı gözler ve ekranda yükselen Zzz.
+  sleepPose=THREE.MathUtils.damp(sleepPose,resting?1:0,4.5,dt);
+  const breath=Math.sin(t*.00195);
+  bodyRig.scale.y=1+sleepPose*.028*breath;
+  bodyRig.scale.x=1+sleepPose*.013*breath;
+  headRig.position.y=sleepPose*.017*breath;
   const blinkElapsed=t-blinkAt;
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
   const eyeHeight=blinking ? .12 : 1;
-  for(const eye of [leftEye,rightEye,leftShine,rightShine])eye.scale.y=eyeHeight;
+  for(const eye of [leftEye,rightEye,leftShine,rightShine]){
+    eye.visible=!resting;
+    eye.scale.y=eyeHeight;
+  }
+  closedLeftEye.visible=resting;closedRightEye.visible=resting;
+  if(resting){
+    headRig.updateWorldMatrix(true,false);
+    sleepAnchor.set(0,1.8,.1);
+    headRig.localToWorld(sleepAnchor);
+    sleepAnchor.project(camera);
+    const visible=sleepAnchor.z<1&&sleepAnchor.z>-1&&Math.abs(sleepAnchor.x)<1.2&&Math.abs(sleepAnchor.y)<1.2;
+    sleepZzz.style.display=visible?'block':'none';
+    if(visible){
+      sleepZzz.style.left=((sleepAnchor.x+1)*innerWidth/2)+'px';
+      sleepZzz.style.top=((1-sleepAnchor.y)*innerHeight/2)+'px';
+    }
+  }else sleepZzz.style.display='none';
   // Dokunma tepkisi büyük ekranda da net görülsün.
   pet.scale.setScalar(reacting?1+.12*Math.sin(Math.PI*reactionTime/750):1);
   renderer.render(scene,camera);
