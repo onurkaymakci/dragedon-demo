@@ -284,10 +284,10 @@ function groundAt(e,out){
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function overlapsOtherFurniture(f,x,z,rotation=f.rotation.y){
   // Mobilya hem başka mobilyaya hem de canavarın bulunduğu alana girmesin.
+  if(f.userData.name==='rug')return false;
   const petTooClose=Math.abs(x-pet.position.x)<1.15 && Math.abs(z-pet.position.z)<1.05;
   if(petTooClose)return true;
   // Basit çarpışma payı: mobilyalar üst üste binmesin
-  if(f.userData.name==='rug')return false;
   const own=footprint(f,rotation);
   return furniture.some(other=>{
     if(other===f||other.userData.name==='rug')return false;
