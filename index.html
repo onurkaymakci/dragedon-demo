@@ -12,14 +12,19 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 
 /* Mobil v0.2: daha küçük paneller, daha rahat kontrol alanı */
 @media(max-width:600px){#top{top:8px;left:8px;right:8px;gap:7px}.card{padding:8px 10px;border-radius:12px}h1{font-size:15px}.stat{font-size:10px;margin-top:3px}.track{width:62px;height:6px}.subtitle{font-size:9px}#hint{top:104px;font-size:10px}#bar{bottom:8px;gap:6px}button{padding:10px 9px;font-size:11px;border-radius:12px}#toast{bottom:99px;max-width:90vw;white-space:normal;text-align:center}}
-#roomActions{position:fixed;right:10px;bottom:84px;display:flex;gap:6px;z-index:3;flex-direction:column;align-items:flex-end}
+#roomActions{position:fixed;right:10px;bottom:84px;display:flex;gap:7px;z-index:3;flex-direction:column;align-items:flex-end}
 #roomActions button{padding:9px 13px;border:1px solid #b6a0cb;background:#f5e5ff;color:#382748;font-size:12px}
+#roomActions .modeButton{background:#e4c8f7;border-color:#d1a4f4}
+#editTools{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
 #switchWall{display:none}
-@media(max-width:600px){#roomActions{bottom:77px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}}
+#roomActions.is-playing #editTools{display:none}
+#hint{background:#24203988;border-radius:18px;padding:6px 9px;max-width:90vw;margin:auto}
+#bar{padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(max-width:600px){#roomActions{bottom:81px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}#hint{top:105px;font-size:10px}#toast{bottom:125px;max-width:80vw}}
 </style></head><body>
 <div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Mobilya / duvar eşyasına basılı tut · Dolaba dokun: aç/kapa</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
-<div id="roomActions"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button></div>
+<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
@@ -231,6 +236,27 @@ document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%them
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
 // v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
 let selectedWallDecor=null;
+let editMode=true;
+const editPanel=document.getElementById('roomActions');
+const editButton=document.getElementById('toggleEdit');
+editButton.onclick=()=>{
+ editMode=!editMode;
+ editPanel.classList.toggle('is-playing',!editMode);
+ editButton.textContent=editMode?'✓ Düzenlemeyi bitir':'🛠️ Odayı düzenle';
+ editButton.setAttribute('aria-pressed',String(editMode));
+ if(!editMode)selectWallDecor(null);
+ document.getElementById('hint').textContent=editMode?
+  'Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır':
+  'Oyun modu · Mochi’ye dokun veya zemine dokunarak yürüt';
+ say(editMode?'Oda düzenleme açık 🛠️':'Mochi ile oyun zamanı! 🐉');
+};
+document.getElementById('resetView').onclick=()=>{
+ CAMERA_TARGET.set(0,1.30,0);
+ cameraAngle=.43;
+ cameraDistance=innerHeight>innerWidth?23.5:17.2;
+ updateCamera();
+ say('Oda görünümü ortalandı! 🏠');
+};
 function selectWallDecor(d){
  selectedWallDecor=d;
  document.getElementById('switchWall').style.display=d?'block':'none';
@@ -556,8 +582,8 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   }
   if(blockTapUntilAllUp||gesture)return;
   const onPet=petAt(e);
-  const decor=onPet?null:decorationAt(e);
-  const item=onPet||decor?null:furnitureAt(e);
+  const decor=editMode&&!onPet?decorationAt(e):null;
+  const item=editMode&&!onPet&&!decor?furnitureAt(e):null;
   const start={x:e.clientX,y:e.clientY};
   gesture={id:e.pointerId,start,last:start,item,decor,onPet,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
