@@ -44,7 +44,11 @@ function item(name,x,z){let group=new THREE.Group();group.position.set(x,0,z);gr
 let bed=item('bed',-1.8,-1);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
 let wardrobe=item('wardrobe',2,-1.9);box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);box(wardrobe,.03,2.3,.03,'#805638',0,1.3,.42);ball(wardrobe,.06,'#f6df9b',-.14,1.3,.46);ball(wardrobe,.06,'#f6df9b',.14,1.3,.46);
 let chest=item('chest',1.8,1);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
-let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);ball(pet,.62,'#84dac5',0,.68,0);ball(pet,.49,'#a6ecda',0,1.3,.07);
+let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);
+// Daha geniş ve görünmez dokunma alanı
+const petHitbox=new THREE.Mesh(new THREE.SphereGeometry(.85,18,12),
+ new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+petHitbox.position.set(0,1.05,.05);petHitbox.userData.petHitbox=true;pet.add(petHitbox);ball(pet,.62,'#84dac5',0,.68,0);ball(pet,.49,'#a6ecda',0,1.3,.07);
 const leftEye=ball(pet,.12,'#28374b',-.21,1.4,.48);
 const rightEye=ball(pet,.12,'#28374b',.21,1.4,.48);
 const leftShine=ball(pet,.04,'#ffffff',-.24,1.45,.56);
@@ -79,7 +83,7 @@ function reactToPet(){
   say(petPhrases[Math.floor(Math.random()*petPhrases.length)]);
 }
 // Oda sınırları ve mobilya çevresinde basit ızgara yol bulma
-const PET_RADIUS=.42,GRID=.35,MIN_X=-3.45,MAX_X=3.45,MIN_Z=-2.85,MAX_Z=2.85;
+const PET_RADIUS=.55,GRID=.25,MIN_X=-3.45,MAX_X=3.45,MIN_Z=-2.85,MAX_Z=2.85;
 function petCellFree(x,z){
   if(x<MIN_X||x>MAX_X||z<MIN_Z||z>MAX_Z)return false;
   const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
@@ -124,10 +128,10 @@ function point(e){
 }
 function petAt(e){
   point(e);
-  const petHits=ray.intersectObjects(pet.children,true);
+  const petHits=ray.intersectObject(petHitbox,false);
   if(!petHits.length)return false;
   const furnitureHits=ray.intersectObjects(furniture,true);
-  return !furnitureHits.length||petHits[0].distance<furnitureHits[0].distance;
+  return !furnitureHits.length||petHits[0].distance<furnitureHits[0].distance+.04;
 }
 function furnitureAt(e){
   point(e);
@@ -143,6 +147,9 @@ function groundAt(e,out){
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function overlapsOtherFurniture(f,x,z){
+  // Mobilya hem başka mobilyaya hem de canavarın bulunduğu alana girmesin.
+  const petTooClose=Math.abs(x-pet.position.x)<1.15 && Math.abs(z-pet.position.z)<1.05;
+  if(petTooClose)return true;
   // Basit çarpışma payı: mobilyalar üst üste binmesin
   const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
   const own=sizes[f.userData.name]||[1,1];
@@ -161,7 +168,7 @@ function moveFurniture(e){
   // Nesnenin ilk tutulduğu yer sabit kalsın; merkeze ani sıçrama olmasın.
   const x=THREE.MathUtils.clamp(hit.x+gesture.offset.x,-3.35,3.35);
   const z=THREE.MathUtils.clamp(hit.z+gesture.offset.z,-2.85,2.8);
-  if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;}
+  if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;petRoute=[];}
 }
 renderer.domElement.addEventListener('pointerdown',e=>{
   if(gesture)return;
@@ -216,7 +223,7 @@ function finishPointer(e,cancel=false){
     return; // Mobilyaya tıklamak evcil hayvanı yürütmesin.
   }
   if(!cancel&&!g.dragging&&distance({x:e.clientX,y:e.clientY},g.start)<=MOVE_THRESHOLD){
-    if(g.onPet){reactToPet();return}
+    if(g.onPet||petAt(e)){reactToPet();return}
     if(isSleeping()){say('Mochi şu an dinleniyor 🌙');return}
     point(e);
     const floorHits=ray.intersectObject(floor,false);
@@ -266,6 +273,8 @@ function frame(t){
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
   const eyeHeight=blinking ? .12 : 1;
   for(const eye of [leftEye,rightEye,leftShine,rightShine])eye.scale.y=eyeHeight;
+  // Dokunma tepkisi büyük ekranda da net görülsün.
+  if(reacting)pet.scale.setScalar(1+.12*Math.sin(Math.PI*reactionTime/750));
   renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
