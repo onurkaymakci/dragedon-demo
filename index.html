@@ -200,9 +200,9 @@ function reactToPet(){
 const PET_RADIUS=.55,GRID=.30,MIN_X=-4.95,MAX_X=4.95,MIN_Z=-4.45,MAX_Z=4.45;
 function petCellFree(x,z){
   if(x<MIN_X||x>MAX_X||z<MIN_Z||z>MAX_Z)return false;
-  const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
   return !furniture.some(f=>{
-    const s=sizes[f.userData.name]||[1,1];
+    if(f.userData.name==='rug')return false;
+    const s=footprint(f);
     return Math.abs(x-f.position.x)<s[0]/2+PET_RADIUS &&
       Math.abs(z-f.position.z)<s[1]/2+PET_RADIUS;
   });
@@ -287,24 +287,87 @@ function overlapsOtherFurniture(f,x,z){
   const petTooClose=Math.abs(x-pet.position.x)<1.15 && Math.abs(z-pet.position.z)<1.05;
   if(petTooClose)return true;
   // Basit çarpışma payı: mobilyalar üst üste binmesin
-  const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8]};
-  const own=sizes[f.userData.name]||[1,1];
+  if(f.userData.name==='rug')return false;
+  const own=footprint(f);
   return furniture.some(other=>{
-    if(other===f)return false;
-    const s=sizes[other.userData.name]||[1,1];
+    if(other===f||other.userData.name==='rug')return false;
+    const s=footprint(other);
     return Math.abs(x-other.position.x)<(own[0]+s[0])/2+.12 &&
            Math.abs(z-other.position.z)<(own[1]+s[1])/2+.12;
   });
 }
+function footprint(f,rotation=f.rotation.y){
+ const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8],rug:[3.8,2.7]};
+ const [w,d]=sizes[f.userData.name]||[1,1];
+ return Math.abs(Math.sin(rotation))>.7?[d,w]:[w,d];
+}
+function furniturePlacement(f,x,z){
+ if(f.userData.name==='rug'){
+   return {x:THREE.MathUtils.clamp(x,-ROOM_HALF_X+2.05,ROOM_HALF_X-2.05),
+           z:THREE.MathUtils.clamp(z,-ROOM_HALF_Z+1.5,ROOM_HALF_Z-1.5),rotation:0};
+ }
+ let rotation=f.rotation.y;
+ // Bir duvara 1.4 birim mesafedeyse hizala; duvara geçecek şekilde itme.
+ const distances=[
+   {side:'left',d:x+ROOM_HALF_X},{side:'right',d:ROOM_HALF_X-x},
+   {side:'back',d:z+ROOM_HALF_Z},{side:'front',d:ROOM_HALF_Z-z}
+ ].sort((a,b)=>a.d-b.d);
+ if(distances[0].d<1.55){
+   const side=distances[0].side;
+   rotation=(side==='left'||side==='right')?Math.PI/2:0;
+ }
+ const [w,d]=footprint(f,rotation);
+ const padding=.14;
+ x=THREE.MathUtils.clamp(x,-ROOM_HALF_X+w/2+padding,ROOM_HALF_X-w/2-padding);
+ z=THREE.MathUtils.clamp(z,-ROOM_HALF_Z+d/2+padding,ROOM_HALF_Z-d/2-padding);
+ if(distances[0].d<1.55){
+   const side=distances[0].side;
+   if(side==='left')x=-ROOM_HALF_X+w/2+padding;
+   if(side==='right')x= ROOM_HALF_X-w/2-padding;
+   if(side==='back')z=-ROOM_HALF_Z+d/2+padding;
+   if(side==='front')z= ROOM_HALF_Z-d/2-padding;
+ }
+ return {x,z,rotation};
+}
 function clearHold(){if(gesture?.timer){clearTimeout(gesture.timer);gesture.timer=null}}
+function decorationAt(e){
+ point(e);
+ const visible=wallDecor.filter(d=>d.parent.visible);
+ const hits=ray.intersectObjects(visible,true);
+ if(!hits.length)return null;
+ let obj=hits[0].object;
+ while(obj.parent&&!obj.userData.decor)obj=obj.parent;
+ return obj.userData.decor?obj:null;
+}
+function wallPoint(e,decor,out){
+ point(e);
+ const side=decor.userData.side;
+ const axis=(side==='back'||side==='front')?'z':'x';
+ const normal=axis==='x'?new THREE.Vector3(1,0,0):new THREE.Vector3(0,0,1);
+ const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,decor.position);
+ return ray.ray.intersectPlane(plane,out);
+}
+function moveDecoration(e){
+ const decor=gesture?.decor;
+ if(!decor||!gesture.dragging||!wallPoint(e,decor,hit))return;
+ const side=decor.userData.side;
+ const coordinate=(side==='back'||side==='front')?'x':'z';
+ const max=(coordinate==='x'?ROOM_HALF_X:ROOM_HALF_Z)-.65;
+ decor.position[coordinate]=THREE.MathUtils.clamp(hit[coordinate]+gesture.decorOffset.u,-max,max);
+ decor.position.y=THREE.MathUtils.clamp(hit.y+gesture.decorOffset.y,.9,3.65);
+ gesture.changed=true;
+}
 function moveFurniture(e){
   if(!gesture?.item||!gesture.dragging)return;
   if(!groundAt(e,hit))return;
   const item=gesture.item;
   // Nesnenin ilk tutulduğu yer sabit kalsın; merkeze ani sıçrama olmasın.
-  const x=THREE.MathUtils.clamp(hit.x+gesture.offset.x,-4.85,4.85);
-  const z=THREE.MathUtils.clamp(hit.z+gesture.offset.z,-4.35,4.35);
-  if(!overlapsOtherFurniture(item,x,z)){item.position.x=x;item.position.z=z;gesture.changed=true;petRoute=[];}
+  const placement=furniturePlacement(item,hit.x+gesture.offset.x,hit.z+gesture.offset.z);
+  if(!overlapsOtherFurniture(item,placement.x,placement.z)){
+    item.position.x=placement.x;item.position.z=placement.z;
+    item.rotation.y=placement.rotation;
+    gesture.changed=true;petRoute=[];
+  }
 }
 renderer.domElement.addEventListener('pointerdown',e=>{
   activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
