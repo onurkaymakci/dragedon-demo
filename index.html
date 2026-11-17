@@ -1130,6 +1130,7 @@ let editMode=true;
 const editPanel=document.getElementById('roomActions');
 const editButton=document.getElementById('toggleEdit');
 editButton.onclick=()=>{
+ if(editMode&&furnitureEdit){say('Önce mobilyayı ✓ Onayla veya ✕ Vazgeç ile tamamla 🛋️');return}
  editMode=!editMode;
  editPanel.classList.toggle('is-playing',!editMode);
  editButton.textContent=editMode?'✓ Düzenlemeyi bitir':'🛠️ Odayı düzenle';
@@ -1406,6 +1407,7 @@ function footprint(f,rotation=f.rotation.y){
  return Math.abs(Math.sin(rotation))>.7?[d,w]:[w,d];
 }
 function furniturePlacement(f,x,z){
+ if(f.userData.extraType)return candidateExtraPlacement(f,x,z,f.rotation.y,true);
  if(f.userData.name==='rug'){
    const rotation=f.rotation.y;
    const [w,d]=footprint(f,rotation);
@@ -1510,7 +1512,13 @@ function moveFurniture(e){
   if(!groundAt(e,hit))return;
   const item=gesture.item;
   // Nesnenin ilk tutulduğu yer sabit kalsın; merkeze ani sıçrama olmasın.
-  const placement=furniturePlacement(item,hit.x+gesture.offset.x,hit.z+gesture.offset.z);
+  const x=hit.x+gesture.offset.x,z=hit.z+gesture.offset.z;
+  if(item.userData.extraType){
+    if(furnitureEdit?.f!==item)beginFurnitureEdit(item);
+    if(moveSelectedFurnitureTo(x,z,true)){gesture.changed=true;petRoute=[]}
+    return;
+  }
+  const placement=furniturePlacement(item,x,z);
   if(!overlapsOtherFurniture(item,placement.x,placement.z,placement.rotation)){
     item.position.x=placement.x;item.position.z=placement.z;
     item.rotation.y=placement.rotation;
@@ -1551,6 +1559,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
     }
   }
   if(item||decor){
+    if(item?.userData.extraType&&furnitureEdit?.f===item&&furnitureMoveMode)gesture.armed=true;
     // Yalnızca zemin mobilyasında yer düzlemi offset'i hesaplanır.
     // Duvar dekoru için offset yukarıda ayrı hesaplandı.
     if(item&&groundAt(e,hit)){gesture.offset.x=item.position.x-hit.x;gesture.offset.z=item.position.z-hit.z;}
@@ -1558,7 +1567,11 @@ renderer.domElement.addEventListener('pointerdown',e=>{
     gesture.timer=setTimeout(()=>{
       if(gesture&&gesture.id===id&&!gesture.canceled){
         gesture.armed=true;
-        say('Taşımak için parmağını kaydır 🪑');
+        if(gesture.item?.userData.extraType){
+          beginFurnitureEdit(gesture.item);
+          furnitureMoveMode=true;updateFurnitureEditMoveButton();
+          say('Taşı, döndür veya kaldır; bitince ✓ Onayla 🛋️');
+        }else say('Taşımak için parmağını kaydır 🪑');
       }
     },HOLD_MS);
   }
@@ -1662,11 +1675,22 @@ function finishPointer(e,cancel=false){
     return;
   }
   if(g.item){
+    if(g.item.userData.extraType){
+      if(cancel&&g.initial){
+        g.item.position.copy(g.initial.position);g.item.rotation.y=g.initial.rotation;
+      }else if(g.changed){
+        if(furnitureEdit?.f!==g.item)beginFurnitureEdit(g.item);
+        say('Konumu ayarladın. Kaydetmek için ✓ Onayla 🛋️');
+      }else if(!g.canceled&&!g.dragging){
+        beginFurnitureEdit(g.item);
+        say('Eşyayı taşıyabilir, döndürebilir veya kaldırabilirsin 🪑');
+      }
+      return;
+    }
     if(cancel&&g.initial){g.item.position.copy(g.initial.position);g.item.rotation.y=g.initial.rotation;}
-    else if(g.changed){save();say(g.item.userData.extraType?'Mobilya taşındı! 🛋️':g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
+    else if(g.changed){save();say(g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
     else if(!g.canceled&&!g.dragging){
-      if(g.item.userData.extraType){selectExtraFurniture(g.item);renderFurnitureInventory();document.getElementById('furnModal').classList.add('open');}
-      else if(g.item===bed&&!editMode){startRest(false)}
+      if(g.item===bed&&!editMode){startRest(false)}
       else if(g.item===wardrobe)toggleWardrobe();
       else if(g.item===rug)say('Halıyı ↻ düğmesiyle döndürebilirsin');
       else say('Mobilyayı taşımak için basılı tut 🖐️');
