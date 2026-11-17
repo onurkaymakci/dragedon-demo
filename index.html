@@ -93,6 +93,22 @@ function petCellFree(x,z){
       Math.abs(z-f.position.z)<s[1]/2+PET_RADIUS;
   });
 }
+// Başlangıç ve kaydedilmiş oda düzeni kontrolü: Mochi hiçbir eşyanın içinde doğmasın.
+function ensurePetSafeSpawn(){
+  if(petCellFree(pet.position.x,pet.position.z))return;
+  const originX=pet.position.x,originZ=pet.position.z;
+  let best=null,bestScore=Infinity;
+  for(let x=MIN_X;x<=MAX_X;x+=.25){
+    for(let z=MIN_Z;z<=MAX_Z;z+=.25){
+      if(!petCellFree(x,z))continue;
+      // Yakın ve kameradan görülebilen merkezi noktalar öncelikli.
+      const score=Math.hypot(x-originX,z-originZ)+.1*Math.abs(x)+.04*Math.abs(z);
+      if(score<bestScore){best={x,z};bestScore=score}
+    }
+  }
+  if(best){pet.position.x=best.x;pet.position.z=best.z;petRoute=[];petTarget.set(best.x,.13,best.z)}
+}
+ensurePetSafeSpawn();
 function planPetRoute(x,z){
   const cols=Math.floor((MAX_X-MIN_X)/GRID)+1,rows=Math.floor((MAX_Z-MIN_Z)/GRID)+1;
   const node=(cx,cz)=>({cx,cz,x:MIN_X+cx*GRID,z:MIN_Z+cz*GRID});
