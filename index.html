@@ -20,11 +20,24 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.1,100);
-const CAMERA_TARGET=new THREE.Vector3(0,1,0);
-const CAMERA_MIN=7.5,CAMERA_MAX=24;
+// Kamera uzaktayken odayı, yakındayken Mochi'yi merkez alır.
+const CAMERA_TARGET=new THREE.Vector3(0,1.05,0);
+const CAMERA_MIN=6.8,CAMERA_MAX=24;
 const CAMERA_MIN_ANGLE=-.10,CAMERA_MAX_ANGLE=.70;
 let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?18.8:13.4;
 const CAMERA_ELEVATION=.43;
+function focusCamera(dt=0){
+  if(typeof pet==='undefined')return;
+  // Yakınlaştıkça oyuncunun karakterini izle, uzaklaşınca odanın bütününe dön.
+  const follow=THREE.MathUtils.smoothstep(cameraDistance,18,8);
+  const desiredX=pet.position.x*follow;
+  const desiredZ=pet.position.z*follow;
+  const desiredY=1.05+.15*follow;
+  const lerp=dt<=0?1:1-Math.exp(-dt*7);
+  CAMERA_TARGET.x=THREE.MathUtils.lerp(CAMERA_TARGET.x,desiredX,lerp);
+  CAMERA_TARGET.y=THREE.MathUtils.lerp(CAMERA_TARGET.y,desiredY,lerp);
+  CAMERA_TARGET.z=THREE.MathUtils.lerp(CAMERA_TARGET.z,desiredZ,lerp);
+}
 function updateCamera(){
  cameraAngle=THREE.MathUtils.clamp(cameraAngle,CAMERA_MIN_ANGLE,CAMERA_MAX_ANGLE);
  cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
@@ -236,7 +249,8 @@ renderer.domElement.addEventListener('pointermove',e=>{
   if(activeTouches.size>=2){
     const next=touchDistance();
     if(next>0&&pinchDistance>0){
-      cameraDistance*=THREE.MathUtils.clamp(pinchDistance/next,.70,1.3);
+      cameraDistance=THREE.MathUtils.clamp(cameraDistance*THREE.MathUtils.clamp(pinchDistance/next,.70,1.3),CAMERA_MIN,CAMERA_MAX);
+      focusCamera(.025);
       updateCamera();
     }
     pinchDistance=next;return;
@@ -320,6 +334,8 @@ function frame(t){
   const tilt=reacting&&petReactionKind==='tilt'?Math.sin(Math.PI*reactionTime/750)*.19:0;
   pet.position.y=.13+(sleeping?0:moving ? .065*Math.abs(Math.sin(stepCycle)) : .025*Math.sin(t*.002))+jump;
   pet.rotation.z=tilt;
+  focusCamera(dt);
+  updateCamera();
   // Rastgele göz kırpma ve dokunmaya özel göz kırpma
   if(t>nextBlink){blinkAt=t;nextBlink=t+2300+Math.random()*3200}
   const blinkElapsed=t-blinkAt;
