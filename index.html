@@ -54,7 +54,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.7</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.8</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
@@ -353,24 +353,37 @@ function startToyChase(now){
  toyPlayPhase='chasing';toyPhaseStartedAt=now;
  toyChaseMoved=0;toyChaseLastRetry=now;
  toyChaseStartDistance=Math.hypot(pet.position.x-toy.position.x,pet.position.z-toy.position.z);
- const target=toy.position;
- const angle=Math.atan2(pet.position.z-target.z,pet.position.x-target.x);
- const radius=.58;
- let found=false;
- for(const delta of [0,.45,-.45,1,-1,Math.PI]){
-  const a=angle+delta,x=target.x+Math.cos(a)*radius,z=target.z+Math.sin(a)*radius;
-  if(petCellFree(x,z)&&planPetRoute(x,z)){found=true;break}
- }
- if(!found){
-  for(const delta of [.85,-.85,1.4,-1.4]){
-   const a=angle+delta,x=target.x+Math.cos(a)*1.02,z=target.z+Math.sin(a)*1.02;
-   if(petCellFree(x,z)&&planPetRoute(x,z)){found=true;break}
+ // Oyuncağı kovalamak için yürüyüş rotasının boş/dolu durumuna bağlı kalma.
+ // Her karede doğrudan topun konumuna yönelen bağımsız takip motoru kullanılır.
+ petRoute=[];
+ say(toyPlayingId==='ball'?'Mochi topa koşuyor! 🐉⚽':'Mochi arabanın peşinde! 🐉🚗');
+}
+function movePetTowardChasedToy(dt){
+ if(toyPlayPhase!=='chasing'||!toyPlayingId||resting||headingToBed)return false;
+ const toy=activeToys.get(toyPlayingId);
+ if(!toy)return false;
+ const dx=toy.position.x-pet.position.x,dz=toy.position.z-pet.position.z;
+ const d=Math.hypot(dx,dz);
+ if(d<.66)return false;
+ const step=Math.min(d-.58,dt*1.42);
+ const x=pet.position.x+dx/d*step,z=pet.position.z+dz/d*step;
+ let tx=x,tz=z;
+ if(!petCellFree(tx,tz)){
+  // Mobilya varsa sağ/sol manevra dene; oyuncağa olan mesafeyi azaltan yolu seç.
+  let best=null,bestDist=d;
+  for(const turn of [.40,-.40,.80,-.80,1.20,-1.20,Math.PI/2,-Math.PI/2]){
+   const a=Math.atan2(dz,dx)+turn;
+   const cx=pet.position.x+Math.cos(a)*step,cz=pet.position.z+Math.sin(a)*step;
+   const dist=Math.hypot(toy.position.x-cx,toy.position.z-cz);
+   if(petCellFree(cx,cz)&&dist<bestDist){bestDist=dist;best={x:cx,z:cz}}
   }
+  if(!best)return false;
+  tx=best.x;tz=best.z;
  }
- // Yol bulma hemen sonuç vermese bile takip durumunu bitirme:
- // aşağıdaki animasyon döngüsü daha yakın bir yürüyüş noktası aramaya devam eder.
- if(!found)petRoute=[];
- say(toyPlayingId==='ball'?'Mochi topun peşinden gidiyor! 🐉⚽':'Mochi arabanın arkasından gidiyor! 🐉🚗');
+ pet.position.x=tx;pet.position.z=tz;
+ const angle=Math.atan2(dx,dz);
+ pet.rotation.y+=Math.atan2(Math.sin(angle-pet.rotation.y),Math.cos(angle-pet.rotation.y))*Math.min(1,dt*9);
+ return true;
 }
 function updateToyPlay(now){
  if(!toyPlayingId)return;
@@ -391,28 +404,14 @@ function updateToyPlay(now){
  }else if(toyPlayPhase==='chasing'){
   const dist=Math.hypot(pet.position.x-toy.position.x,pet.position.z-toy.position.z);
   // Eski sürümde boş rotayı "topa ulaştı" sayıyorduk; bu yüzden Mochi hiç koşmadan yeniden vuruyordu.
-  const reached=dist<.78&&toyChaseMoved>.22;
+  const reached=dist<.78&&toyChaseMoved>.14;
   if(reached){
    toyPlayRound++;
    if(toyPlayRound<3&&stats.energy>=10&&startToyPush(now)){/* tekrar vur */}
    else{toyPlayPhase='celebrating';toyPhaseStartedAt=now;petRoute=[];}
   }else if(elapsed>TOY_CHASE_TIMEOUT){
    toyPlayPhase='celebrating';toyPhaseStartedAt=now;petRoute=[];
-  }else if(!petRoute.length&&now-toyChaseLastRetry>350){
-   toyChaseLastRetry=now;
-   // Yakındaki erişilebilir noktalardan birini yeniden dene.
-   const a=Math.atan2(pet.position.z-toy.position.z,pet.position.x-toy.position.x);
-   for(const radius of [.63,.86,1.06]){
-    let found=false;
-    for(const offset of [0,.5,-.5,1.1,-1.1,Math.PI]){
-     const x=toy.position.x+Math.cos(a+offset)*radius;
-     const z=toy.position.z+Math.sin(a+offset)*radius;
-     if(petCellFree(x,z)&&planPetRoute(x,z)&&petRoute.length){
-      found=true;break;
-     }
-    }
-    if(found)break;
-   }
+   say('Mochi topa ulaşamadı; oyuncağı daha açık bir yere taşıyabilirsin 🐾');
   }
  }else if(toyPlayPhase==='drumming'){
   const beat=now-toyPlayStartedAt;
@@ -1372,7 +1371,10 @@ function frame(t){
     else if(!petRoute.length){toyTargetId=null;nextToyExploreAt=t+750;}
   }
   let moving=false;
-  if(!sleeping&&petRoute.length){
+  if(!sleeping&&toyPlayPhase==='chasing'&&toyPlayingId){
+    // Takip, standart yürüyüş rotasından bağımsızdır.
+    moving=movePetTowardChasedToy(dt);
+  }else if(!sleeping&&petRoute.length){
     const wp=petRoute[0],dx=wp.x-pet.position.x,dz=wp.z-pet.position.z;
     const dist=Math.hypot(dx,dz);
     if(dist<.035){petRoute.shift();if(headingToBed&&!petRoute.length)lieDown()
