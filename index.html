@@ -78,32 +78,60 @@ function updateWallVisibility(){
   wallGroups.back.visible=dz>=0;
 }
 placeCamera();
-// Zeminde geniş merkezi oyun halısı; taşınabilirlik sprint 4.3 kapsamında.
-const rug=box(scene,3.8,.045,2.7,'#f8eade',0,.005,.65);
-box(scene,3.48,.012,2.42,'#f1d4de',0,.034,.65);
+// Halı artık seçilebilir ve taşınabilir dekor.
+const furniture=[];
+function item(name,x,z){const group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
+const rug=item('rug',0,.65);
+box(rug,3.8,.045,2.7,'#f8eade',0,.005,0);
+box(rug,3.48,.012,2.42,'#f1d4de',0,.034,0);
 // Arka duvarda pencere, raf, yıldız ve saksı.
 box(backWall,2.2,1.55,.09,'#f9f1ff',.2,2.95,-4.88);
 box(backWall,1.97,1.30,.09,'#9cd6e4',.2,2.95,-4.82);
 box(backWall,.08,1.3,.11,'#fff4fa',.2,2.95,-4.76);
 box(backWall,1.97,.08,.11,'#fff4fa',.2,2.95,-4.76);
 box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-4.69);
-box(backWall,1.28,.14,.36,'#f2cca6',-3.6,2.35,-4.65);
-ball(backWall,.19,'#ffcbe2',-3.8,2.61,-4.6);
-ball(backWall,.14,'#b7e9ba',-3.35,2.58,-4.6);
+// Duvar dekoru kendi grubunda: duvar üzerinde uzun basılarak taşınır.
+const wallDecor=[];
+function decor(name,side,x,y){
+ const group=new THREE.Group();group.userData.decor=name;group.userData.side=side;
+ if(side==='back'){group.position.set(x,y,-4.80);backWall.add(group)}
+ if(side==='front'){group.position.set(x,y,4.80);frontWall.add(group)}
+ if(side==='left'){group.position.set(-5.30,y,x);leftWall.add(group)}
+ if(side==='right'){group.position.set(5.30,y,x);rightWall.add(group)}
+ wallDecor.push(group);return group;
+}
+const backShelf=decor('backShelf','back',-3.6,2.35);
+box(backShelf,1.28,.14,.36,'#f2cca6',0,0,0);
+ball(backShelf,.19,'#ffcbe2',-.20,.26,.07);
+ball(backShelf,.14,'#b7e9ba',.25,.23,.07);
 // Sol duvarda resim çerçeveleri.
-box(leftWall,.10,1.12,1.04,'#fff8ed',-5.36,2.70,-1.7);
-box(leftWall,.11,.86,.80,'#c8b4ed',-5.29,2.70,-1.7);
-box(leftWall,.1,.85,.75,'#f8e8f6',-5.36,2.62,1.2);
+const picture=decor('picture','left',-1.7,2.70);
+box(picture,.10,1.12,1.04,'#fff8ed',0,0,0);
+box(picture,.11,.86,.80,'#c8b4ed',.07,0,0);
+const pictureTwo=decor('pictureTwo','left',1.2,2.62);
+box(pictureTwo,.10,.85,.75,'#f8e8f6',0,0,0);
 // Sağ duvarda aplik ve raf.
-box(rightWall,.15,.75,1.35,'#ecd4bd',5.34,2.95,-1.6);
-ball(rightWall,.24,'#ffdf8a',5.18,3.0,-1.6);
-box(rightWall,.48,.12,1.55,'#dcb49d',5.13,2.1,1.35);
+const wallLamp=decor('wallLamp','right',-1.6,2.95);
+box(wallLamp,.15,.75,1.35,'#ecd4bd',0,0,0);
+ball(wallLamp,.24,'#ffdf8a',-.16,.05,0);
+const rightShelf=decor('rightShelf','right',1.35,2.1);
+box(rightShelf,.48,.12,1.55,'#dcb49d',-.17,0,0);
 // Ön duvar da mevcut: üstünde küçük yıldız dekoru.
-ball(frontWall,.26,'#f6c5d7',-2.3,3.1,4.84);
-const furniture=[];
-function item(name,x,z){let group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
+const frontStar=decor('frontStar','front',-2.3,3.1);
+ball(frontStar,.26,'#f6c5d7',0,0,.02);
 let bed=item('bed',-3.3,-2.75);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
-let wardrobe=item('wardrobe',3.45,-3.45);box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);box(wardrobe,.03,2.3,.03,'#805638',0,1.3,.42);ball(wardrobe,.06,'#f6df9b',-.14,1.3,.46);ball(wardrobe,.06,'#f6df9b',.14,1.3,.46);
+let wardrobe=item('wardrobe',3.45,-3.45);
+box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);
+box(wardrobe,1.15,2.15,.08,'#82644f',0,1.25,.411);
+const leftDoorPivot=new THREE.Group(),rightDoorPivot=new THREE.Group();
+leftDoorPivot.position.set(-.69,1.25,.45);rightDoorPivot.position.set(.69,1.25,.45);
+wardrobe.add(leftDoorPivot,rightDoorPivot);
+box(leftDoorPivot,.67,2.24,.075,'#efc69d',.335,0,0);
+box(rightDoorPivot,.67,2.24,.075,'#efc69d',-.335,0,0);
+ball(leftDoorPivot,.065,'#f9e8ad',.58,0,.095);
+ball(rightDoorPivot,.065,'#f9e8ad',-.58,0,.095);
+let wardrobeOpen=false,wardrobeDoorProgress=0;
+function toggleWardrobe(){wardrobeOpen=!wardrobeOpen;say(wardrobeOpen?'Dolap açıldı! 👗':'Dolap kapandı! 🚪')}
 let chest=item('chest',3.4,2.4);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
 let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);
 // Daha geniş ve görünmez dokunma alanı
