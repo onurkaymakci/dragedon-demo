@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/><title>DRAGEDON — The World of Esilda</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#282039;color:#fff;font:14px system-ui,sans-serif;overflow:hidden}canvas{display:block;touch-action:none}
+#top{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:10px;pointer-events:none}
+.card{background:#282039e6;padding:11px 14px;border-radius:17px;border:1px solid #ffffff55}h1{font-size:18px;margin:0;letter-spacing:1px}.subtitle{font-size:10px;color:#d9cde9}
+.stat{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:5px}.track{width:84px;height:8px;border-radius:9px;background:#57506b;overflow:hidden}.fill{height:100%;background:#83e4b9}
+#bar{position:fixed;bottom:16px;left:8px;right:8px;display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#46364e;font-weight:750;box-shadow:0 3px 0 #a991bf;font-size:12px}
+#toast{position:fixed;bottom:94px;left:50%;transform:translateX(-50%);white-space:nowrap;border-radius:30px;background:#29223ddd;padding:9px 13px;font-size:12px;pointer-events:none}
+#hint{position:fixed;top:130px;left:12px;right:12px;text-align:center;font-size:11px;color:#fff8;pointer-events:none}
+</style></head><body>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="hint">Mobilyaları sürükle · Boş alanda kaydırarak kamerayı döndür</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
+const camera=new THREE.PerspectiveCamera(43,innerWidth/innerHeight,.1,100);camera.position.set(7,7,10);camera.lookAt(0,1,0);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight('#ffffff','#8e82b3',2.5));let light=new THREE.DirectionalLight('#ffffff',2);light.position.set(-3,8,7);scene.add(light);
+const material=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
+function box(g,w,h,d,c,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(c));m.position.set(x,y,z);g.add(m);return m}
+function ball(g,r,c,x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material(c));m.position.set(x,y,z);g.add(m);return m}
+const themes=[['#ebdaf2','#e2c8ed'],['#d8efe2','#bddcce'],['#eee2cd','#ddcaad']];let currentTheme=0;
+const floor=box(scene,8,.2,7,themes[0][0],0,-.15,0),wall=box(scene,8,4,.12,themes[0][1],0,1.85,-3.5),wall2=box(scene,.12,4,7,themes[0][1],-4,1.85,0);
+box(scene,2.8,.05,1.8,'#fbefda',.2,.01,1.2);
+const furniture=[];
+function item(name,x,z){let group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
+let bed=item('bed',-1.8,-1);box(bed,2,.35,1.35,'#b6a1dd',0,.3,0);box(bed,1.7,.15,1.1,'#fff6fa',0,.55,0);box(bed,.52,.1,.72,'#f8cbd8',-.55,.69,0);box(bed,2,.8,.15,'#826baf',0,.6,-.7);
+let wardrobe=item('wardrobe',2,-1.9);box(wardrobe,1.4,2.5,.8,'#c29b76',0,1.25,0);box(wardrobe,.03,2.3,.03,'#805638',0,1.3,.42);ball(wardrobe,.06,'#f6df9b',-.14,1.3,.46);ball(wardrobe,.06,'#f6df9b',.14,1.3,.46);
+let chest=item('chest',1.8,1);box(chest,1.1,.7,.8,'#df9d90',0,.35,0);box(chest,1.2,.13,.88,'#ffe0b4',0,.76,0);
+let pet=new THREE.Group();scene.add(pet);pet.position.set(0,.13,0);ball(pet,.62,'#84dac5',0,.68,0);ball(pet,.49,'#a6ecda',0,1.3,.07);ball(pet,.12,'#28374b',-.21,1.4,.48);ball(pet,.12,'#28374b',.21,1.4,.48);ball(pet,.04,'#ffffff',-.24,1.45,.56);ball(pet,.04,'#ffffff',.18,1.45,.56);ball(pet,.09,'#f4a5b4',0,1.2,.55);
+for(let x of [-.3,.3]){let ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.52,12),material('#908fd9'));ear.position.set(x,1.72,0);ear.rotation.z=x<0?.2:-.2;pet.add(ear)}ball(pet,.21,'#84dac5',-.4,.2,.3);ball(pet,.21,'#84dac5',.4,.2,.3);
+const key='dragedon-demo-save-v1';let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+for(let f of furniture)if(saved[f.userData.name]){f.position.x=saved[f.userData.name][0];f.position.z=saved[f.userData.name][1]}
+let stats=saved.stats||{food:70,joy:80,clean:75};const toast=document.getElementById('toast');
+function say(s){toast.textContent=s}function refresh(){for(let k of Object.keys(stats))document.getElementById(k).style.width=stats[k]+'%'}
+function save(){let data={stats};for(let f of furniture)data[f.userData.name]=[f.position.x,f.position.z];localStorage.setItem(key,JSON.stringify(data))}
+function act(k,n,message){stats[k]=Math.min(100,stats[k]+n);refresh();save();say(message);pet.scale.setScalar(1.1);setTimeout(()=>pet.scale.setScalar(1),300)}
+document.getElementById('feed').onclick=()=>act('food',20,'Mochi çileği çok sevdi! 🍓');
+document.getElementById('play').onclick=()=>{stats.food=Math.max(0,stats.food-4);act('joy',20,'Mochi çok eğlendi! 🎾')};
+document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu! 🫧');
+document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);wall.material.color.set(themes[currentTheme][1]);wall2.material.color.set(themes[currentTheme][1]);say('Yeni oda rengi! 🎨')};
+document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
+let ray=new THREE.Raycaster(),coords=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();let selected=null,startX=0,drag=false;
+function point(e){coords.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(coords,camera)}
+renderer.domElement.addEventListener('pointerdown',e=>{point(e);selected=null;let intersects=ray.intersectObjects(furniture,true);if(intersects.length){let obj=intersects[0].object;while(obj.parent&&!obj.userData.name)obj=obj.parent;if(obj.userData.name)selected=obj}startX=e.clientX;drag=false;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(e.buttons===0)return;let dx=e.clientX-startX;startX=e.clientX;drag=true;if(selected){point(e);if(ray.ray.intersectPlane(ground,hit)){selected.position.x=THREE.MathUtils.clamp(hit.x,-3.4,3.4);selected.position.z=THREE.MathUtils.clamp(hit.z,-3,2.9)}}else{camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),-dx*.004);camera.lookAt(0,1,0)}});
+renderer.domElement.addEventListener('pointerup',()=>{if(selected&&drag){save();say('Mobilyanın yeri kaydedildi! 🪑')}else if(!drag)say('Mochi sana gülümsedi! 💗');selected=null});
+const now=new Date(),hour=now.getHours()+now.getMinutes()/60;const sleeping=hour>=22.5||hour<7.5;document.getElementById('clock').textContent=sleeping?'🌙':'☀️';document.getElementById('mood').textContent=sleeping?'Mochi uyuyor':'Mochi mutlu';
+function frame(t){requestAnimationFrame(frame);pet.position.y=.13+.04*Math.sin(t*.002);pet.rotation.y=Math.sin(t*.001)*.12;renderer.render(scene,camera)}requestAnimationFrame(frame);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});refresh();
+</script></body></html>
