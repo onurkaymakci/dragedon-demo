@@ -36,6 +36,8 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #sleepZzz span:nth-child(3){font-size:33px;animation-delay:1.05s}
 @keyframes floatZ{0%,100%{transform:translateY(8px) scale(.8);opacity:.25}45%{transform:translateY(-16px) scale(1.1);opacity:1}80%{transform:translateY(-28px) scale(1);opacity:.4}}
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
+#tiredBattery{position:fixed;z-index:6;display:none;pointer-events:none;transform:translate(-50%,-100%);font-size:27px;filter:drop-shadow(0 2px 4px #20162988);animation:tiredBatteryBob 2.1s ease-in-out infinite}
+@keyframes tiredBatteryBob{0%,100%{transform:translate(-50%,-100%)}50%{transform:translate(-50%,-120%)}}
 #petHearts{position:fixed;z-index:5;display:none;pointer-events:none;transform:translate(-50%,-50%);font-size:25px;text-shadow:0 2px 5px #3d204b99;animation:petHeartFloat 1.15s ease-out both}
 @keyframes petHeartFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.65)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-56px) scale(1.25)}}
 #petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
@@ -54,8 +56,8 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.7.9</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.0</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -259,6 +261,11 @@ const rightEye=ball(headRig,.12,'#28374b',.21,1.19,.60);
 const leftShine=ball(headRig,.04,'#ffffff',-.24,1.24,.67);
 const rightShine=ball(headRig,.04,'#ffffff',.18,1.24,.67);
 const nose=ball(headRig,.09,'#f4a5b4',0,1.00,.68);
+// Esneme sırasında açılan minik ağız.
+const yawnMouth=ball(headRig,.095,'#52344a',0,.84,.655);
+yawnMouth.scale.set(.72,.10,.28);yawnMouth.visible=false;
+const yawnTongue=ball(headRig,.052,'#f6a6ba',0,.80,.677);
+yawnTongue.scale.set(.9,.35,.32);yawnTongue.visible=false;
 // Uyurken göz küreleri yerine iki ince, kapalı göz çizgisi göster.
 const sleepLidMaterial=material('#354154');
 const closedLeftEye=box(headRig,.25,.035,.037,'#354154',-.21,1.19,.603);
@@ -270,6 +277,10 @@ let sleepPose=0;
 let pettingUntil=0,pettingStarted=0,lastPetRewardAt=-10000;
 const petHearts=document.getElementById('petHearts');
 const petHeartAnchor=new THREE.Vector3();
+const tiredBattery=document.getElementById('tiredBattery');
+const tiredAnchor=new THREE.Vector3();
+let tiredCycleStartedAt=performance.now();
+let wasLowEnergy=false;
 for(const x of [-.3,.3]){
  const ear=new THREE.Mesh(new THREE.ConeGeometry(.22,.52,12),material('#908fd9'));
  ear.position.set(x,1.52,.10);ear.rotation.z=x<0?.2:-.2;headRig.add(ear);
@@ -1509,6 +1520,31 @@ function frame(t){
       }
     }
   }
+  // Enerji %20'nin altındaysa, boşta beklerken aralıklarla esner ve gözlerini ovuşturur.
+  const lowEnergy=stats.energy<20&&!resting&&!headingToBed;
+  if(lowEnergy&&!wasLowEnergy)tiredCycleStartedAt=t-700;
+  wasLowEnergy=lowEnergy;
+  const tiredIdle=lowEnergy&&!moving&&!toyPlayingId&&!toyTargetId&&!petRoute.length;
+  const tiredCycle=tiredIdle?((t-tiredCycleStartedAt)%7600+7600)%7600:-1;
+  const yawnStrength=tiredCycle>=0&&tiredCycle<2600?Math.sin(Math.PI*tiredCycle/2600):0;
+  const rubStrength=tiredCycle>=2750&&tiredCycle<4400?Math.sin(Math.PI*(tiredCycle-2750)/1650):0;
+  if(yawnStrength>0){
+    headRig.rotation.x-=.20*yawnStrength;
+    headRig.rotation.z+=.05*Math.sin(t*.004)*yawnStrength;
+    bodyRig.scale.y*=1+.035*yawnStrength;
+  }
+  if(rubStrength>0){
+    headRig.rotation.z+=.08*Math.sin(t*.018)*rubStrength;
+    for(const limb of crawlLimbs)if(limb.front>0){
+      limb.joint.position.y=.25+rubStrength*.52;
+      limb.joint.position.z=.39+rubStrength*.12;
+      limb.joint.rotation.x=-.65*rubStrength;
+    }
+  }
+  yawnMouth.visible=yawnStrength>.06;
+  yawnTongue.visible=yawnStrength>.30;
+  yawnMouth.scale.y=.10+yawnStrength*.95;
+  yawnTongue.scale.y=.35+yawnStrength*.45;
   // Neşe azaldığında, yürüme ve uykuya müdahale etmeden oyuncuya seslen.
   if(!resting&&!headingToBed&&!petRoute.length&&t>=nextAttentionAt)triggerAttention(t);
   if(resting||headingToBed||(stats.joy>=50&&fear<20))clearAttention();
@@ -1573,7 +1609,7 @@ function frame(t){
   headRig.position.y=sleepPose*.017*breath;
   const blinkElapsed=t-blinkAt;
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
-  const eyeHeight=petting?.12:(waking&&wakePhase<.38?.16:(blinking?.12:1));
+  const eyeHeight=yawnStrength>.08?.16:(rubStrength>.1?.30:(petting?.12:(waking&&wakePhase<.38?.16:(blinking?.12:1))));
   for(const eye of [leftEye,rightEye,leftShine,rightShine]){
     eye.visible=!resting;
     eye.scale.y=eyeHeight;
@@ -1591,7 +1627,19 @@ function frame(t){
       sleepZzz.style.top=((1-sleepAnchor.y)*innerHeight/2)+'px';
     }
   }else sleepZzz.style.display='none';
-  if(attentionActive&&!waking){
+  if(lowEnergy){
+    pet.updateWorldMatrix(true,false);
+    tiredAnchor.set(0,2.05,.06);
+    pet.localToWorld(tiredAnchor);
+    tiredAnchor.project(camera);
+    const visible=tiredAnchor.z>-1&&tiredAnchor.z<1&&Math.abs(tiredAnchor.x)<.94&&Math.abs(tiredAnchor.y)<.94;
+    tiredBattery.style.display=visible?'block':'none';
+    if(visible){
+      tiredBattery.style.left=((tiredAnchor.x+1)*innerWidth/2)+'px';
+      tiredBattery.style.top=((1-tiredAnchor.y)*innerHeight/2)+'px';
+    }
+  }else tiredBattery.style.display='none';
+  if(attentionActive&&!waking&&!lowEnergy){
     pet.updateWorldMatrix(true,false);
     thoughtAnchor.set(0,2.05,.05);
     pet.localToWorld(thoughtAnchor);
