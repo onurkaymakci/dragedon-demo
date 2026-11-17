@@ -38,7 +38,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.4</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.5</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -249,6 +249,9 @@ let stats={food:70,joy:80,clean:75,energy:85,...(saved.stats||{})};
 for(const k of ['food','joy','clean','energy'])stats[k]=THREE.MathUtils.clamp(Number(stats[k])||0,0,100);
 let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=false;
 let lastNeedsSave=0;
+let awakeSeconds=0;
+let wakeStartedAt=-10000;
+const WAKE_ANIMATION_MS=2400;
 const ambientLight=scene.children.find(o=>o.isHemisphereLight);
 const mainLight=scene.children.find(o=>o.isDirectionalLight);
 function updateCareButton(id,emoji,label,accessibility){
@@ -305,6 +308,7 @@ document.getElementById('play').onclick=()=>{
  if(stats.food<8){say('Mochi acıktı, önce besle 🍓');return}
  stats.food=Math.max(0,stats.food-7);
  stats.energy=Math.max(0,stats.energy-13);
+ awakeSeconds=0; // Oyun, neşe düşüşü için bekleme süresini sıfırlar.
  stats.clean=Math.max(0,stats.clean-3);
  act('joy',20,'Mochi oynadı, biraz yoruldu ve acıktı! 🎾');
  if(stats.energy<12)startRest(true);
@@ -782,7 +786,7 @@ renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,tru
 function isSleeping(){return resting}
 function updateClock(){
  document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
- document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':'Mochi mutlu';
+ document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':stats.joy<25?'Mochi oyun istiyor 🎾':stats.joy<50?'Mochi biraz sıkıldı':'Mochi mutlu';
  // Uyku veya yatağa gidiş sırasında bakım ve oyun yapılamaz.
  for(const id of ['feed','wash','play']){
   const button=document.getElementById(id);
@@ -829,6 +833,8 @@ function lieDown(){
 function wakeUp(fullyRested=false){
  if(!resting)return;
  resting=false;autoRest=false;
+ wakeStartedAt=performance.now();
+ awakeSeconds=0;
  const p=bedApproach()[0];
  if(p){pet.position.x=p.x;pet.position.z=p.z}
  else{ensurePetSafeSpawn()}
@@ -875,6 +881,15 @@ function frame(t){
     stats.energy=Math.min(100,stats.energy+dt*2.2);
     // Enerji dolunca uyku biter: kalk, lambayı aç ve bakım kontrollerini geri getir.
     if(stats.energy>=100){stats.energy=100;wakeUp(true)}
+  }else if(!headingToBed){
+    // Neşe bekledikçe düşer, uyku süresince düşmez.
+    // 40 sn aktif uyanıklıkta 1 puan, açlıkta ek 1 puan.
+    awakeSeconds+=dt;
+    if(awakeSeconds>=40){
+      const intervals=Math.floor(awakeSeconds/40);
+      awakeSeconds-=intervals*40;
+      stats.joy=Math.max(0,stats.joy-intervals*(stats.food<25?2:1));
+    }
   }
   if(t-lastNeedsSave>5000){lastNeedsSave=t;refresh();updateClock();save()}
   crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
@@ -907,6 +922,23 @@ function frame(t){
     headRig.rotation.z=tilt*.35;
     babyTail.rotation.y=crawlBlend*.17*Math.sin(stepCycle)+(1-crawlBlend)*.1*Math.sin(t*.002);
   }
+  // Uyanınca ağır ağır doğrulma, iki ön patiyi geriye esnetme, başı kaldırma.
+  const wakeElapsed=t-wakeStartedAt;
+  const waking=wakeElapsed>=0&&wakeElapsed<WAKE_ANIMATION_MS&&!resting;
+  const wakePhase=waking?wakeElapsed/WAKE_ANIMATION_MS:1;
+  const wakeAmount=waking?Math.sin(Math.PI*wakePhase):0;
+  if(waking){
+    bodyRig.rotation.x-=wakeAmount*.12;
+    headRig.rotation.x-=wakeAmount*.22;
+    headRig.rotation.z+=wakeAmount*.11;
+    pet.rotation.x=-wakeAmount*.08;
+    for(const limb of crawlLimbs){
+      if(limb.front>0){
+        limb.joint.position.z=limb.front*.39+wakeAmount*.18;
+        limb.joint.rotation.x=-wakeAmount*.35;
+      }
+    }
+  }
   wardrobeDoorProgress=THREE.MathUtils.damp(wardrobeDoorProgress,wardrobeOpen?1:0,8,dt);
   leftDoorPivot.rotation.y=-1.35*wardrobeDoorProgress;
   rightDoorPivot.rotation.y=1.35*wardrobeDoorProgress;
@@ -922,7 +954,7 @@ function frame(t){
   headRig.position.y=sleepPose*.017*breath;
   const blinkElapsed=t-blinkAt;
   const blinking=blinkElapsed>=0&&blinkElapsed<165;
-  const eyeHeight=blinking ? .12 : 1;
+  const eyeHeight=waking&&wakePhase<.38?.16:(blinking?.12:1);
   for(const eye of [leftEye,rightEye,leftShine,rightShine]){
     eye.visible=!resting;
     eye.scale.y=eyeHeight;
@@ -941,7 +973,8 @@ function frame(t){
     }
   }else sleepZzz.style.display='none';
   // Dokunma tepkisi büyük ekranda da net görülsün.
-  pet.scale.setScalar(reacting?1+.12*Math.sin(Math.PI*reactionTime/750):1);
+  const wakeStretch=waking?Math.sin(Math.PI*wakePhase)*.095:0;
+  pet.scale.setScalar((reacting?1+.12*Math.sin(Math.PI*reactionTime/750):1)+wakeStretch);
   renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
