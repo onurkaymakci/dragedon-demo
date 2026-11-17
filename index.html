@@ -12,6 +12,9 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 
 /* Mobil v0.2: daha küçük paneller, daha rahat kontrol alanı */
 @media(max-width:600px){#top{top:8px;left:8px;right:8px;gap:7px}.card{padding:8px 10px;border-radius:12px}h1{font-size:15px}.stat{font-size:10px;margin-top:3px}.track{width:62px;height:6px}.subtitle{font-size:9px}#hint{top:104px;font-size:10px}#bar{bottom:8px;gap:6px}button{padding:10px 9px;font-size:11px;border-radius:12px}#toast{bottom:99px;max-width:90vw;white-space:normal;text-align:center}}
+#cameraTools{position:fixed;z-index:5;left:9px;bottom:143px;display:flex;gap:5px;align-items:center}
+#cameraTools button{padding:8px 10px;border-radius:11px;background:#f4e7ffed;color:#443251;font-size:12px;border:1px solid #d2b8e7;box-shadow:0 2px 5px #1a123555}
+@media(max-width:600px){#cameraTools{bottom:157px;left:6px}#cameraTools button{padding:7px 8px;font-size:11px}}
 #roomActions{position:fixed;right:10px;bottom:84px;display:flex;gap:7px;z-index:3;flex-direction:column;align-items:flex-end}
 #roomActions button{padding:9px 13px;border:1px solid #b6a0cb;background:#f5e5ff;color:#382748;font-size:12px}
 #roomActions .modeButton{background:#e4c8f7;border-color:#d1a4f4}
@@ -56,9 +59,10 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.2</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
+<div id="cameraTools" aria-label="Kamera kontrolleri"><button id="cameraRoom" type="button" title="Odayı göster">🏠 Oda</button><button id="cameraPet" type="button" title="Mochi'ye odaklan">🐉 Mochi</button><button id="cameraNear" type="button" title="Yakınlaş">＋</button><button id="cameraFar" type="button" title="Uzaklaş">－</button></div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
 <button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
@@ -72,21 +76,30 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
-const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.1,100);
+const camera=new THREE.PerspectiveCamera(54,innerWidth/innerHeight,.1,120);
 // Kamera uzaktayken odayı, yakındayken Mochi'yi merkez alır.
 const CAMERA_TARGET=new THREE.Vector3(0,1.30,0);
-const CAMERA_MIN=6.5,CAMERA_MAX=29;
-const CAMERA_MIN_ANGLE=-Math.PI*4,CAMERA_MAX_ANGLE=Math.PI*4;
-let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?23.5:17.2;
-const CAMERA_ELEVATION=.43;
-// Kamera odağı oyuncu tarafından iki parmakla belirlenir.
-function focusCamera(){ /* Karakteri otomatik takip etme kapalı. */ }
+const CAMERA_MIN=4.8,CAMERA_MAX=39;
+let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?25:20.5;
+let cameraElevation=.52;
+const CAMERA_ELEVATION_MIN=.16,CAMERA_ELEVATION_MAX=1.22;
+function focusCamera(mode='pet'){
+ if(mode==='pet'){
+  CAMERA_TARGET.set(pet.position.x,1.22,pet.position.z);
+  cameraDistance=Math.min(cameraDistance,12.8);
+ }else{
+  CAMERA_TARGET.set(0,1.25,0);
+  cameraDistance=innerHeight>innerWidth?25:20.5;
+  cameraElevation=.52;
+ }
+ updateCamera();
+}
 function updateCamera(){
  cameraDistance=THREE.MathUtils.clamp(cameraDistance,CAMERA_MIN,CAMERA_MAX);
- // Kamera tam tur döner, açı değerinin sonsuza kadar büyümesini önle.
+ cameraElevation=THREE.MathUtils.clamp(cameraElevation,CAMERA_ELEVATION_MIN,CAMERA_ELEVATION_MAX);
  if(Math.abs(cameraAngle)>Math.PI*2)cameraAngle=Math.atan2(Math.sin(cameraAngle),Math.cos(cameraAngle));
- const h=cameraDistance*Math.cos(CAMERA_ELEVATION);
- camera.position.set(Math.sin(cameraAngle)*h,CAMERA_TARGET.y+Math.sin(CAMERA_ELEVATION)*cameraDistance,Math.cos(cameraAngle)*h);
+ const h=cameraDistance*Math.cos(cameraElevation);
+ camera.position.set(Math.sin(cameraAngle)*h,CAMERA_TARGET.y+Math.sin(cameraElevation)*cameraDistance,Math.cos(cameraAngle)*h);
  camera.lookAt(CAMERA_TARGET);
  if(typeof updateWallVisibility==='function')updateWallVisibility();
 }
@@ -873,17 +886,19 @@ editButton.onclick=()=>{
  nextToyExploreAt=performance.now()+450;
  if(activeToys.size&&!resting&&!headingToBed&&!toyPlayingId&&mayPlayToys())selectToyForMochi();
  document.getElementById('hint').textContent=editMode?
-  'Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır':
-  'Oyun modu · Mochi’ye dokun veya zemine dokunarak yürüt';
+  'Düzenleme: boş alanda sürükle = kamerayı döndür · İki parmak = kaydır / zoom':
+  'Oyun: yukarı/aşağı sürükle = kamera açısı · Çift dokun = odak';
  say(editMode?'Oda düzenleme açık 🛠️':'Mochi ile oyun zamanı! 🐉');
 };
 document.getElementById('resetView').onclick=()=>{
- CAMERA_TARGET.set(0,1.30,0);
  cameraAngle=.43;
- cameraDistance=innerHeight>innerWidth?23.5:17.2;
- updateCamera();
- say('Oda görünümü ortalandı! 🏠');
+ focusCamera('room');
+ say('Kamera başlangıç açısına döndü! 🏠');
 };
+document.getElementById('cameraRoom').onclick=()=>{focusCamera('room');say('Tüm odaya odaklandın 🏠')};
+document.getElementById('cameraPet').onclick=()=>{focusCamera('pet');say('Kamera Mochi’ye odaklandı 🐉')};
+document.getElementById('cameraNear').onclick=()=>{cameraDistance=Math.max(CAMERA_MIN,cameraDistance*.77);updateCamera()};
+document.getElementById('cameraFar').onclick=()=>{cameraDistance=Math.min(CAMERA_MAX,cameraDistance*1.30);updateCamera()};
 function selectWallDecor(d){
  selectedWallDecor=d;
  document.getElementById('switchWall').style.display=d?'block':'none';
@@ -1071,11 +1086,12 @@ function panCameraToKeepPoint(before,screen){
  if(!before||!screen)return;
  const after=floorAtScreen(screen.x,screen.y);
  if(!after)return;
- CAMERA_TARGET.x=THREE.MathUtils.clamp(CAMERA_TARGET.x+before.x-after.x,-4.6,4.6);
- CAMERA_TARGET.z=THREE.MathUtils.clamp(CAMERA_TARGET.z+before.z-after.z,-4.1,4.1);
+ CAMERA_TARGET.x=THREE.MathUtils.clamp(CAMERA_TARGET.x+before.x-after.x,-7.5,7.5);
+ CAMERA_TARGET.z=THREE.MathUtils.clamp(CAMERA_TARGET.z+before.z-after.z,-7,7);
  updateCamera();
 }
 let gesture=null;
+let lastCameraTap={at:0,x:-999,y:-999};
 function point(e){
   coords.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);
   ray.setFromCamera(coords,camera);
@@ -1320,8 +1336,9 @@ renderer.domElement.addEventListener('pointermove',e=>{
   }else{
     if(moved>MOVE_THRESHOLD)gesture.dragging=true;
     if(gesture.dragging){
-      const dx=next.x-gesture.last.x;
-      cameraAngle-=dx*.0035;
+      const dx=next.x-gesture.last.x,dy=next.y-gesture.last.y;
+      cameraAngle-=dx*.0060;
+      cameraElevation=THREE.MathUtils.clamp(cameraElevation+dy*.0045,CAMERA_ELEVATION_MIN,CAMERA_ELEVATION_MAX);
       updateCamera();
     }
   }
@@ -1385,6 +1402,14 @@ function finishPointer(e,cancel=false){
     return;
   }
   if(!cancel&&!g.dragging&&distance({x:e.clientX,y:e.clientY},g.start)<=MOVE_THRESHOLD){
+    const now=performance.now();
+    const doubleTap=now-lastCameraTap.at<320&&Math.hypot(e.clientX-lastCameraTap.x,e.clientY-lastCameraTap.y)<45;
+    lastCameraTap={at:now,x:e.clientX,y:e.clientY};
+    if(doubleTap){
+      if(g.onPet||petAt(e)){focusCamera('pet');say('Mochi’ye odaklandın 🐉');return}
+      const floorPos=floorAtScreen(e.clientX,e.clientY);
+      if(floorPos){CAMERA_TARGET.set(THREE.MathUtils.clamp(floorPos.x,-7.5,7.5),1.15,THREE.MathUtils.clamp(floorPos.z,-7,7));updateCamera();say('Kamera buraya odaklandı 📷');return}
+    }
     if(g.onPet||petAt(e)){reactToPet();return}
     if(resting){say('Mochi dinleniyor. Uyandır düğmesine dokun 💤');return}
     if(headingToBed){say('Mochi yatağına gidiyor 🛏️');return}
