@@ -426,9 +426,6 @@ document.getElementById('toyTake').onclick=()=>{
  closeToyBox();save();
  say(count?count+' oyuncak odaya çıktı! Geri koymak için sandığın üzerine sürükle 🧸':'Oyuncaklar için yerde boş alan bulunamadı 🪑');
 };
-for(const [id,position] of Object.entries(saved.toys||{})){
- if(Array.isArray(position)&&position.length>=2)takeToy(id,position);
-}
 let stats={food:70,joy:80,clean:75,energy:85,...(saved.stats||{})};
 for(const k of ['food','joy','clean','energy'])stats[k]=THREE.MathUtils.clamp(Number(stats[k])||0,0,100);
 let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=false;
@@ -660,6 +657,10 @@ function ensurePetSafeSpawn(){
   if(best){pet.position.x=best.x;pet.position.z=best.z;petRoute=[];petTarget.set(best.x,.13,best.z)}
 }
 ensurePetSafeSpawn();
+// Çarpışma ve zemin kontrolü hazır olduktan sonra kayıtlı oyuncakları yerleştir.
+for(const [id,position] of Object.entries(saved.toys||{})){
+ if(Array.isArray(position)&&position.length>=2)takeToy(id,position);
+}
 function clearPetSegment(a,b){
  const distance=Math.hypot(b.x-a.x,b.z-a.z);
  const steps=Math.max(1,Math.ceil(distance/.13));
