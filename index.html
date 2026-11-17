@@ -442,31 +442,34 @@ function furniturePlacement(f,x,z){
            z:THREE.MathUtils.clamp(z,-ROOM_HALF_Z+d/2+.15,ROOM_HALF_Z-d/2-.15),rotation};
  }
  let rotation=f.rotation.y;
- // Bir duvara 1.4 birim mesafedeyse hizala; duvara geçecek şekilde itme.
  const distances=[
-   {side:'left',d:x+ROOM_HALF_X},{side:'right',d:ROOM_HALF_X-x},
-   {side:'back',d:z+ROOM_HALF_Z},{side:'front',d:ROOM_HALF_Z-z}
+   {side:'left',d:Math.max(0,x+ROOM_HALF_X)},
+   {side:'right',d:Math.max(0,ROOM_HALF_X-x)},
+   {side:'back',d:Math.max(0,z+ROOM_HALF_Z)},
+   {side:'front',d:Math.max(0,ROOM_HALF_Z-z)}
  ].sort((a,b)=>a.d-b.d);
- if(distances[0].d<1.55){
-   const side=distances[0].side;
-   // Dolap kapakları yerel +Z yönünde: her duvarda odanın içine bakmalı.
-   // Sağ: -X, sol: +X, arka: +Z, ön: -Z.
+ const closest=distances[0];
+ // Dolabın geniş gövdesi yüzünden parmağın düştüğü nokta duvardan
+ // 1.55 birimden uzakta kalabiliyordu. Sağ duvarda yön bu yüzden eski kalıyordu.
+ const snapDistance=f.userData.name==='wardrobe'?2.45:1.55;
+ const snapped=closest.d<snapDistance;
+ if(snapped){
    if(f.userData.name==='wardrobe'){
-     rotation={back:0,right:-Math.PI/2,front:Math.PI,left:Math.PI/2}[side];
+     // Kapakların yerel önü +Z'dir. Her duvarda içe dönük sabit açı.
+     rotation={back:0,right:-Math.PI/2,front:Math.PI,left:Math.PI/2}[closest.side];
    }else{
-     rotation=(side==='left'||side==='right')?Math.PI/2:0;
+     rotation=(closest.side==='left'||closest.side==='right')?Math.PI/2:0;
    }
  }
  const [w,d]=footprint(f,rotation);
  const padding=.14;
  x=THREE.MathUtils.clamp(x,-ROOM_HALF_X+w/2+padding,ROOM_HALF_X-w/2-padding);
  z=THREE.MathUtils.clamp(z,-ROOM_HALF_Z+d/2+padding,ROOM_HALF_Z-d/2-padding);
- if(distances[0].d<1.55){
-   const side=distances[0].side;
-   if(side==='left')x=-ROOM_HALF_X+w/2+padding;
-   if(side==='right')x= ROOM_HALF_X-w/2-padding;
-   if(side==='back')z=-ROOM_HALF_Z+d/2+padding;
-   if(side==='front')z= ROOM_HALF_Z-d/2-padding;
+ if(snapped){
+   if(closest.side==='left')x=-ROOM_HALF_X+w/2+padding;
+   if(closest.side==='right')x=ROOM_HALF_X-w/2-padding;
+   if(closest.side==='back')z=-ROOM_HALF_Z+d/2+padding;
+   if(closest.side==='front')z=ROOM_HALF_Z-d/2-padding;
  }
  return {x,z,rotation};
 }
