@@ -45,6 +45,16 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 @keyframes petHeartFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.65)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-56px) scale(1.25)}}
 #petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
+#furnModal{position:fixed;inset:0;z-index:32;display:none;align-items:center;justify-content:center;padding:12px;background:#1a1229bd}
+#furnModal.open{display:flex}
+#furnPanel{width:min(95vw,490px);max-height:82vh;overflow:auto;background:#fff9ff;color:#453251;border-radius:20px;padding:17px;box-shadow:0 12px 38px #15102580}
+#furnPanel h2{margin:0 0 4px;font-size:19px}#furnPanel p{margin:0 0 10px;font-size:12px;line-height:1.5}
+#furnGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.furnOption{min-width:0;background:#f1e5fa;color:#453251;border:1px solid #dcc4eb;border-radius:12px;padding:11px 7px;text-align:left;font-size:12px;line-height:1.45}
+.furnOption b{display:block;font-size:14px}.furnOption small{display:block;color:#746080;font-size:11px}
+#furnSelected{margin:12px 0 8px;padding:9px;background:#f7effb;border-radius:12px;font-size:12px}
+#furnActions{display:flex;gap:7px;flex-wrap:wrap}#furnActions button{flex:1;min-width:90px;padding:10px 6px;font-size:12px}
+#furnRemove{background:#ffe0e5}#furnClose{background:#e8def0}
 #toyModal{position:fixed;inset:0;z-index:30;background:#1a1229b8;display:none;align-items:center;justify-content:center;padding:14px}
 #toyModal.open{display:flex}
 #toyPanel{background:#fff9ff;color:#46334f;width:min(94vw,480px);max-height:min(84vh,640px);overflow:auto;border-radius:22px;padding:17px;box-shadow:0 12px 36px #100e1d88}
@@ -59,11 +69,12 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.4</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="cameraTools" aria-label="Kamera kontrolleri"><button id="cameraRoom" type="button" title="Odayı göster">🏠 Oda</button><button id="cameraPet" type="button" title="Mochi'ye odaklan">🐉 Mochi</button><button id="cameraNear" type="button" title="Yakınlaş">＋</button><button id="cameraFar" type="button" title="Uzaklaş">－</button></div>
-<div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
+<div id="furnModal" role="dialog" aria-modal="true" aria-label="Mobilya envanteri"><div id="furnPanel"><h2>🛋️ Oda Envanteri</h2><p>Bir eşya seçerek odaya ekle. Yerleştirdiğin eşyaya dokunarak seç; basılı tutup sürükleyerek taşı. Seçili eşyayı döndürebilir veya envantere kaldırabilirsin.</p><div id="furnGrid"></div><div id="furnSelected">Seçili eşya yok</div><div id="furnActions"><button id="furnRotate" type="button">↻ Döndür</button><button id="furnRemove" type="button">📦 Kaldır</button><button id="furnClose" type="button">Kapat</button></div></div></div>
+<div id="roomActions"><button id="openFurn" type="button">🛋️ Eşyalar</button><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
 <button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
 <button class="care-btn" id="play" aria-label="Oyna" title="Oyna"><span class="care-icon">🎾</span><span class="care-label">Oyna</span></button>
@@ -136,6 +147,18 @@ function updateWallVisibility(){
 placeCamera();
 // Halı artık seçilebilir ve taşınabilir dekor.
 const furniture=[];
+const EXTRA_FURNITURE=[
+ {id:'sofa',name:'Mini koltuk',emoji:'🛋️',size:[1.8,1.05]},
+ {id:'bookshelf',name:'Kitaplık',emoji:'📚',size:[1.3,.60]},
+ {id:'pouf',name:'Puf',emoji:'🟣',size:[.80,.80]},
+ {id:'table',name:'Oyun masası',emoji:'🧩',size:[1.45,1.10]},
+ {id:'floorlamp',name:'Lambader',emoji:'💡',size:[.62,.62]},
+ {id:'nightstand',name:'Komodin',emoji:'🗄️',size:[.85,.70]},
+ {id:'plant',name:'Saksı bitkisi',emoji:'🪴',size:[.85,.85]},
+ {id:'toyShelf',name:'Oyuncak rafı',emoji:'🧸',size:[1.25,.62]}
+];
+const extraFurniture=new Map();
+let nextFurnitureId=1,selectedFurniture=null;
 function item(name,x,z){const group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
 const rug=item('rug',0,.65);
 box(rug,3.8,.045,2.7,'#f8eade',0,.005,0);
@@ -805,7 +828,9 @@ function refresh(){
  for(const k of ['food','joy','clean','energy'])document.getElementById(k).style.width=THREE.MathUtils.clamp(stats[k],0,100)+'%';
 }
 function save(){
- const data={stats,theme:currentTheme,lightOn,toys:Object.fromEntries([...activeToys].map(([id,toy])=>[id,[toy.position.x,toy.position.z]]))};
+ const data={stats,theme:currentTheme,lightOn,toys:Object.fromEntries([...activeToys].map(([id,toy])=>[id,[toy.position.x,toy.position.z]])),
+ furnitureInventory:[...extraFurniture.values()].map(f=>({id:f.userData.name,type:f.userData.extraType,x:f.position.x,z:f.position.z,r:f.rotation.y})),
+ nextFurnitureId};
  for(const f of furniture)data[f.userData.name]=[f.position.x,f.position.z,f.rotation.y];
  for(const d of wallDecor){
    const side=d.userData.side;
@@ -873,6 +898,122 @@ document.getElementById('rest').onclick=()=>{
 };
 document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
+
+function createExtraFurniture(type,id){
+ const f=item(id,0,0);f.userData.extraType=type;extraFurniture.set(id,f);
+ const wood='#d6ac8b',pink='#e8b4c5',mint='#a8dfc8',lav='#c7b3e8';
+ if(type==='sofa'){
+  box(f,1.8,.25,1.05,wood,0,.20,0);box(f,1.65,.35,.82,pink,0,.45,.06);
+  box(f,1.75,.66,.22,lav,0,.72,-.43);
+  for(const x of [-.79,.79])box(f,.22,.48,1.02,pink,x,.59,0);
+  for(const x of [-.42,.42])box(f,.65,.13,.54,'#ffe6f1',x,.68,.12);
+ }else if(type==='bookshelf'){
+  box(f,1.25,2.05,.56,wood,0,1.03,0);
+  box(f,1.07,1.85,.59,'#fff0dc',0,1.04,.03);
+  for(const y of [.42,1.03,1.64]){
+   box(f,1.13,.10,.62,wood,0,y,.04);
+   for(let n=0;n<6;n++)box(f,.105,.30+(n%3)*.05,.30,['#e39eb0','#8fc8ed','#b4dfa8','#e8c58a'][n%4],-.43+n*.17,y+.22,.15);
+  }
+ }else if(type==='pouf'){
+  const seat=new THREE.Mesh(new THREE.CylinderGeometry(.43,.47,.42,20),material(lav));seat.position.y=.24;f.add(seat);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(.44,.44,.10,20),material('#e9d5fa'));top.position.y=.49;f.add(top);
+ }else if(type==='table'){
+  box(f,1.45,.15,1.1,'#f5d4ab',0,.72,0);
+  for(const x of [-.59,.59])for(const z of [-.42,.42])box(f,.12,.70,.12,wood,x,.35,z);
+  box(f,.46,.06,.30,mint,-.30,.82,0);ball(f,.13,pink,.35,.90,.04);
+ }else if(type==='floorlamp'){
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.27,.30,.10,16),material('#ad99c7'));base.position.y=.05;f.add(base);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,1.62,12),material(wood));pole.position.y=.87;f.add(pole);
+  const shade=new THREE.Mesh(new THREE.ConeGeometry(.42,.62,16),material('#fff0bc'));shade.position.y=1.78;shade.rotation.z=Math.PI;f.add(shade);
+  ball(f,.14,'#ffe6a0',0,1.52,0);
+ }else if(type==='nightstand'){
+  box(f,.85,.72,.70,wood,0,.39,0);box(f,.90,.09,.75,'#e9c8b1',0,.77,0);
+  box(f,.62,.24,.025,'#f6e9e5',0,.49,.365);ball(f,.045,'#9a819f',0,.48,.39);
+  box(f,.62,.22,.025,'#f6e9e5',0,.19,.365);ball(f,.045,'#9a819f',0,.18,.39);
+ }else if(type==='plant'){
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(.29,.20,.48,16),material('#e6b09d'));pot.position.y=.27;f.add(pot);
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.75,10),material('#71aa7f'));stem.position.y=.82;f.add(stem);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const leaf=ball(f,.24,i%2?'#74b88d':'#99d5a1',Math.cos(a)*.23,1.10+(i%3)*.15,Math.sin(a)*.23);leaf.scale.y=.67}
+ }else if(type==='toyShelf'){
+  box(f,1.25,1.38,.60,wood,0,.72,0);
+  box(f,1.10,1.18,.63,'#f9ebd8',0,.73,.02);
+  for(const y of [.36,.77,1.17])box(f,1.19,.08,.62,wood,0,y,.04);
+  ball(f,.15,pink,-.34,.54,.16);box(f,.22,.25,.22,mint,.25,.51,.16);
+  ball(f,.14,'#f4cf77',.33,1.00,.16);ball(f,.12,lav,-.31,1.00,.15);
+ }
+ return f;
+}
+function findExtraFurnitureSpot(f){
+ // Önce oda çevresindeki açık alanlar; mevcut mobilya ve Mochi'ye çarpma.
+ const cells=[];
+ for(let r=2;r<9;r+=.60)for(let n=0;n<24;n++){
+  const a=n*Math.PI*2/24;
+  cells.push({x:Math.cos(a)*r,z:Math.sin(a)*r});
+ }
+ for(const p of cells){
+  const placed=furniturePlacement(f,p.x,p.z);
+  if(!overlapsOtherFurniture(f,placed.x,placed.z,placed.rotation))return placed;
+ }
+ return null;
+}
+function selectExtraFurniture(f){
+ selectedFurniture=f&&f.userData.extraType?f:null;
+ const label=document.getElementById('furnSelected');
+ if(!label)return;
+ const def=selectedFurniture?EXTRA_FURNITURE.find(d=>d.id===selectedFurniture.userData.extraType):null;
+ label.textContent=def?('Seçili: '+def.emoji+' '+def.name+' · Dokunup basılı tutarak taşı'):'Seçili eşya yok · Odaya eklediklerinden birine dokun';
+ document.getElementById('furnRotate').disabled=!selectedFurniture;
+ document.getElementById('furnRemove').disabled=!selectedFurniture;
+}
+function renderFurnitureInventory(){
+ const grid=document.getElementById('furnGrid');grid.replaceChildren();
+ for(const def of EXTRA_FURNITURE){
+  const count=[...extraFurniture.values()].filter(f=>f.userData.extraType===def.id).length;
+  const button=document.createElement('button');button.type='button';button.className='furnOption';
+  const heading=document.createElement('b');heading.textContent=def.emoji+' '+def.name;
+  const info=document.createElement('small');info.textContent='Odada '+count+' adet · + Ekle';
+  button.append(heading,info);
+  button.onclick=()=>{
+   const id='extra-'+nextFurnitureId++;
+   const f=createExtraFurniture(def.id,id),place=findExtraFurnitureSpot(f);
+   if(!place){furniture.splice(furniture.indexOf(f),1);extraFurniture.delete(id);scene.remove(f);say('Eşya için boş alan bulunamadı 🪑');renderFurnitureInventory();return}
+   f.position.set(place.x,0,place.z);f.rotation.y=place.rotation;
+   selectExtraFurniture(f);save();renderFurnitureInventory();
+   say(def.name+' odaya eklendi! 🛋️');
+  };
+  grid.appendChild(button);
+ }
+ selectExtraFurniture(selectedFurniture);
+}
+function closeFurnitureInventory(){document.getElementById('furnModal').classList.remove('open')}
+document.getElementById('openFurn').onclick=()=>{
+ if(!editMode)editButton.click();
+ renderFurnitureInventory();
+ document.getElementById('furnModal').classList.add('open');
+};
+document.getElementById('furnClose').onclick=closeFurnitureInventory;
+document.getElementById('furnModal').addEventListener('click',e=>{if(e.target.id==='furnModal')closeFurnitureInventory()});
+document.getElementById('furnRotate').onclick=()=>{
+ const f=selectedFurniture;if(!f)return;
+ const prior=f.rotation.y,angle=(prior+Math.PI/2)%(Math.PI*2);
+ const p=furniturePlacement(f,f.position.x,f.position.z);
+ if(!overlapsOtherFurniture(f,p.x,p.z,angle)){
+  const w=footprint(f,angle);
+  const x=THREE.MathUtils.clamp(f.position.x,-ROOM_HALF_X+w[0]/2+.14,ROOM_HALF_X-w[0]/2-.14);
+  const z=THREE.MathUtils.clamp(f.position.z,-ROOM_HALF_Z+w[1]/2+.14,ROOM_HALF_Z-w[1]/2-.14);
+  if(!overlapsOtherFurniture(f,x,z,angle)){f.rotation.y=angle;f.position.x=x;f.position.z=z;save();say('Mobilya 90° döndürüldü ↻');return}
+ }
+ say('Döndürmek için çevresinde biraz boşluk bırak 🪑');
+};
+document.getElementById('furnRemove').onclick=()=>{
+ const f=selectedFurniture;if(!f)return;
+ furniture.splice(furniture.indexOf(f),1);
+ extraFurniture.delete(f.userData.name);
+ scene.remove(f);
+ selectExtraFurniture(null);renderFurnitureInventory();save();
+ say('Eşya envantere kaldırıldı 📦');
+};
+
 // v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
 let selectedWallDecor=null;
 let editMode=true;
@@ -990,6 +1131,23 @@ ensurePetSafeSpawn();
 for(const [id,position] of Object.entries(saved.toys||{})){
  if(Array.isArray(position)&&position.length>=2)takeToy(id,position);
 }
+// Kayıtlı ilave mobilyaları eski sabit eşyalar ve oyuncaklar korunarak geri yükle.
+if(Array.isArray(saved.furnitureInventory)){
+ for(const entry of saved.furnitureInventory){
+  if(!entry||!EXTRA_FURNITURE.some(d=>d.id===entry.type))continue;
+  if(typeof entry.id!=='string'||!/^extra-[0-9]+$/.test(entry.id))continue;
+  const f=createExtraFurniture(entry.type,entry.id);
+  f.rotation.y=Number.isFinite(entry.r)?entry.r:0;
+  const p=furniturePlacement(f,Number(entry.x)||0,Number(entry.z)||0);
+  if(!overlapsOtherFurniture(f,p.x,p.z,f.rotation.y)){
+   f.position.set(p.x,0,p.z);
+  }else{
+   const spot=findExtraFurnitureSpot(f);
+   if(spot)f.position.set(spot.x,0,spot.z);
+  }
+ }
+}
+nextFurnitureId=Math.max(Number(saved.nextFurnitureId)||1,1,...[...extraFurniture.keys()].map(id=>Number(id.split('-')[1])+1));
 function clearPetSegment(a,b){
  const distance=Math.hypot(b.x-a.x,b.z-a.z);
  const steps=Math.max(1,Math.ceil(distance/.13));
@@ -1133,6 +1291,7 @@ function overlapsOtherFurniture(f,x,z,rotation=f.rotation.y){
 }
 function footprint(f,rotation=f.rotation.y){
  const sizes={bed:[2,1.35],wardrobe:[1.4,.8],chest:[1.1,.8],rug:[3.8,2.7]};
+ if(f.userData.extraType){const def=EXTRA_FURNITURE.find(d=>d.id===f.userData.extraType);if(def)sizes[f.userData.name]=def.size}
  const [w,d]=sizes[f.userData.name]||[1,1];
  return Math.abs(Math.sin(rotation))>.7?[d,w]:[w,d];
 }
@@ -1153,7 +1312,7 @@ function furniturePlacement(f,x,z){
  const closest=distances[0];
  // Dolabın geniş gövdesi yüzünden parmağın düştüğü nokta duvardan
  // 1.55 birimden uzakta kalabiliyordu. Sağ duvarda yön bu yüzden eski kalıyordu.
- const snapDistance=f.userData.name==='wardrobe'?2.45:1.55;
+ const snapDistance=f.userData.extraType?0:f.userData.name==='wardrobe'?2.45:1.55;
  const snapped=closest.d<snapDistance;
  if(snapped){
    if(f.userData.name==='wardrobe'){
@@ -1394,9 +1553,10 @@ function finishPointer(e,cancel=false){
   }
   if(g.item){
     if(cancel&&g.initial){g.item.position.copy(g.initial.position);g.item.rotation.y=g.initial.rotation;}
-    else if(g.changed){save();say(g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
+    else if(g.changed){save();say(g.item.userData.extraType?'Mobilya taşındı! 🛋️':g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
     else if(!g.canceled&&!g.dragging){
-      if(g.item===bed&&!editMode){startRest(false)}
+      if(g.item.userData.extraType){selectExtraFurniture(g.item);renderFurnitureInventory();document.getElementById('furnModal').classList.add('open');}
+      else if(g.item===bed&&!editMode){startRest(false)}
       else if(g.item===wardrobe)toggleWardrobe();
       else if(g.item===rug)say('Halıyı ↻ düğmesiyle döndürebilirsin');
       else say('Mobilyayı taşımak için basılı tut 🖐️');
