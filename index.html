@@ -59,7 +59,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #toyActions #toyTake{background:#d5b8f4}
 #toyCount{font-size:12px;font-weight:800;margin:10px 0 0;color:#72518d}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.2</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <div id="cameraTools" aria-label="Kamera kontrolleri"><button id="cameraRoom" type="button" title="Odayı göster">🏠 Oda</button><button id="cameraPet" type="button" title="Mochi'ye odaklan">🐉 Mochi</button><button id="cameraNear" type="button" title="Yakınlaş">＋</button><button id="cameraFar" type="button" title="Uzaklaş">－</button></div>
@@ -79,8 +79,8 @@ const scene=new THREE.Scene();scene.background=new THREE.Color('#cac5e8');
 const camera=new THREE.PerspectiveCamera(54,innerWidth/innerHeight,.1,120);
 // Kamera uzaktayken odayı, yakındayken Mochi'yi merkez alır.
 const CAMERA_TARGET=new THREE.Vector3(0,1.30,0);
-const CAMERA_MIN=4.8,CAMERA_MAX=39;
-let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?25:20.5;
+const CAMERA_MIN=4.8,CAMERA_MAX=55;
+let cameraAngle=.43,cameraDistance=innerHeight>innerWidth?36:30;
 let cameraElevation=.52;
 const CAMERA_ELEVATION_MIN=.16,CAMERA_ELEVATION_MAX=1.22;
 function focusCamera(mode='pet'){
@@ -89,7 +89,7 @@ function focusCamera(mode='pet'){
   cameraDistance=Math.min(cameraDistance,12.8);
  }else{
   CAMERA_TARGET.set(0,1.25,0);
-  cameraDistance=innerHeight>innerWidth?25:20.5;
+  cameraDistance=innerHeight>innerWidth?36:30;
   cameraElevation=.52;
  }
  updateCamera();
@@ -111,18 +111,18 @@ const material=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
 function box(g,w,h,d,c,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(c));m.position.set(x,y,z);g.add(m);return m}
 function ball(g,r,c,x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material(c));m.position.set(x,y,z);g.add(m);return m}
 const themes=[['#ebdaf2','#e2c8ed'],['#d8efe2','#bddcce'],['#eee2cd','#ddcaad']];let currentTheme=0;
-// Sprint 4.1: Dört tam duvar, geniş 11 x 10 oda ve duvara bağlı dekorlar.
-const ROOM_HALF_X=5.5,ROOM_HALF_Z=5;
-const floor=box(scene,11,.2,10,themes[0][0],0,-.15,0);
+// %50 en ve boy genişlemesi: 11x10 -> 16.5x15; mevcut oyun kaydı aynı kalır.
+const ROOM_HALF_X=8.25,ROOM_HALF_Z=7.5;
+const floor=box(scene,ROOM_HALF_X*2,.2,ROOM_HALF_Z*2,themes[0][0],0,-.15,0);
 const wallGroups={};
 function makeWall(name){
   const g=new THREE.Group();g.userData.wall=name;scene.add(g);wallGroups[name]=g;return g;
 }
 const backWall=makeWall('back'),frontWall=makeWall('front'),leftWall=makeWall('left'),rightWall=makeWall('right');
-const wall=box(backWall,11,4.4,.14,themes[0][1],0,2.05,-ROOM_HALF_Z);
-const wallFront=box(frontWall,11,4.4,.14,themes[0][1],0,2.05,ROOM_HALF_Z);
-const wall2=box(leftWall,.14,4.4,10,themes[0][1],-ROOM_HALF_X,2.05,0);
-const wallRight=box(rightWall,.14,4.4,10,themes[0][1],ROOM_HALF_X,2.05,0);
+const wall=box(backWall,ROOM_HALF_X*2,4.4,.14,themes[0][1],0,2.05,-ROOM_HALF_Z);
+const wallFront=box(frontWall,ROOM_HALF_X*2,4.4,.14,themes[0][1],0,2.05,ROOM_HALF_Z);
+const wall2=box(leftWall,.14,4.4,ROOM_HALF_Z*2,themes[0][1],-ROOM_HALF_X,2.05,0);
+const wallRight=box(rightWall,.14,4.4,ROOM_HALF_Z*2,themes[0][1],ROOM_HALF_X,2.05,0);
 // Dört duvar hep bulunur; kamera önündeki yakın duvarlar görüntüden gizlenir.
 function updateWallVisibility(){
   const dx=camera.position.x-CAMERA_TARGET.x;
@@ -141,11 +141,11 @@ const rug=item('rug',0,.65);
 box(rug,3.8,.045,2.7,'#f8eade',0,.005,0);
 box(rug,3.48,.012,2.42,'#f1d4de',0,.034,0);
 // Arka duvarda pencere, raf, yıldız ve saksı.
-box(backWall,2.2,1.55,.09,'#f9f1ff',.2,2.95,-4.88);
-box(backWall,1.97,1.30,.09,'#9cd6e4',.2,2.95,-4.82);
-box(backWall,.08,1.3,.11,'#fff4fa',.2,2.95,-4.76);
-box(backWall,1.97,.08,.11,'#fff4fa',.2,2.95,-4.76);
-box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-4.69);
+box(backWall,2.2,1.55,.09,'#f9f1ff',.2,2.95,-ROOM_HALF_Z+.12);
+box(backWall,1.97,1.30,.09,'#9cd6e4',.2,2.95,-ROOM_HALF_Z+.18);
+box(backWall,.08,1.3,.11,'#fff4fa',.2,2.95,-ROOM_HALF_Z+.24);
+box(backWall,1.97,.08,.11,'#fff4fa',.2,2.95,-ROOM_HALF_Z+.24);
+box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-ROOM_HALF_Z+.31);
 // Duvar dekoru kendi grubunda: duvar üzerinde uzun basılarak taşınır.
 const wallDecor=[];
 const wallParents={back:backWall,front:frontWall,left:leftWall,right:rightWall};
@@ -158,7 +158,8 @@ function setDecorWall(anchor,side,u,y){
  // Duvar yönü her seferinde mutlak olarak hesaplanır: önceki transferin yönü birikmez.
  wallParents[side].add(anchor);
  anchor.rotation.set(0,wallFacing[side],0);
- const along=THREE.MathUtils.clamp(u,side==='back'||side==='front'?-4.65:-4.1,side==='back'||side==='front'?4.65:4.1);
+ const limit=(side==='back'||side==='front'?ROOM_HALF_X:ROOM_HALF_Z)-.42;
+ const along=THREE.MathUtils.clamp(u,-limit,limit);
  const height=THREE.MathUtils.clamp(y,.9,3.65);
  const depth=decorDepth[anchor.userData.decor]??.20;
  if(side==='back')anchor.position.set(along,height,-ROOM_HALF_Z+depth);
@@ -304,8 +305,8 @@ tailMesh.rotation.x=-Math.PI/2;tailMesh.position.z=-.22;babyTail.add(tailMesh);
 let babyStage='baby'; // İleride genç/erişkin evrelere genişletilecek.
 const key='dragedon-demo-save-v1';let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
 for(let f of furniture)if(saved[f.userData.name]){
-  f.position.x=THREE.MathUtils.clamp(saved[f.userData.name][0],-4.7,4.7);
-  f.position.z=THREE.MathUtils.clamp(saved[f.userData.name][1],-4.2,4.2);
+  f.position.x=THREE.MathUtils.clamp(saved[f.userData.name][0],-ROOM_HALF_X+.8,ROOM_HALF_X-.8);
+  f.position.z=THREE.MathUtils.clamp(saved[f.userData.name][1],-ROOM_HALF_Z+.8,ROOM_HALF_Z-.8);
   if(typeof saved[f.userData.name][2]==='number')f.rotation.y=saved[f.userData.name][2];
 }
 // Eski kayıtta dolap duvara ters bakıyorsa açılışta yönünü bir kez düzelt.
@@ -573,7 +574,7 @@ function createToyModel(def){
  return g;
 }
 function validToySpot(x,z,id){
- if(Math.abs(x)>4.95||Math.abs(z)>4.45)return false;
+ if(x<MIN_X||x>MAX_X||z<MIN_Z||z>MAX_Z)return false;
  if(!petCellFree(x,z))return false;
  if(Math.hypot(x-pet.position.x,z-pet.position.z)<.80)return false;
  for(const [otherId,toy] of activeToys)if(otherId!==id&&Math.hypot(x-toy.position.x,z-toy.position.z)<.78)return false;
@@ -582,12 +583,12 @@ function validToySpot(x,z,id){
 function toySpawnSpot(id){
  // Önce sandığın odaya bakan tarafında, sonra serbest zemin noktalarında ara.
  const candidates=[];
- for(let r=1.25;r<=4.5;r+=.55)for(let a=0;a<12;a++){
+ for(let r=1.25;r<=7.0;r+=.55)for(let a=0;a<12;a++){
   const angle=(a/12)*Math.PI*2;
   candidates.push({x:chest.position.x+Math.cos(angle)*r,z:chest.position.z+Math.sin(angle)*r});
  }
  for(const p of candidates)if(validToySpot(p.x,p.z,id))return p;
- for(let x=-4.5;x<=4.5;x+=.55)for(let z=-4;z<=4;z+=.55)if(validToySpot(x,z,id))return {x,z};
+ for(let x=MIN_X+.3;x<=MAX_X-.3;x+=.55)for(let z=MIN_Z+.3;z<=MAX_Z-.3;z+=.55)if(validToySpot(x,z,id))return {x,z};
  return null;
 }
 function takeToy(id,position){
@@ -959,7 +960,7 @@ function reactToPet(){
   awakeSeconds=0;refresh();updateClock();save();
 }
 // Oda sınırları ve mobilya çevresinde basit ızgara yol bulma
-const PET_RADIUS=.55,GRID=.30,MIN_X=-4.95,MAX_X=4.95,MIN_Z=-4.45,MAX_Z=4.45;
+const PET_RADIUS=.55,GRID=.30,MIN_X=-ROOM_HALF_X+.55,MAX_X=ROOM_HALF_X-.55,MIN_Z=-ROOM_HALF_Z+.55,MAX_Z=ROOM_HALF_Z-.55;
 function petCellFree(x,z){
   if(x<MIN_X||x>MAX_X||z<MIN_Z||z>MAX_Z)return false;
   return !furniture.some(f=>{
@@ -1086,8 +1087,8 @@ function panCameraToKeepPoint(before,screen){
  if(!before||!screen)return;
  const after=floorAtScreen(screen.x,screen.y);
  if(!after)return;
- CAMERA_TARGET.x=THREE.MathUtils.clamp(CAMERA_TARGET.x+before.x-after.x,-7.5,7.5);
- CAMERA_TARGET.z=THREE.MathUtils.clamp(CAMERA_TARGET.z+before.z-after.z,-7,7);
+ CAMERA_TARGET.x=THREE.MathUtils.clamp(CAMERA_TARGET.x+before.x-after.x,-ROOM_HALF_X-2,ROOM_HALF_X+2);
+ CAMERA_TARGET.z=THREE.MathUtils.clamp(CAMERA_TARGET.z+before.z-after.z,-ROOM_HALF_Z-2,ROOM_HALF_Z+2);
  updateCamera();
 }
 let gesture=null;
@@ -1225,7 +1226,8 @@ function moveDecoration(e){
  const u=target.u+(changedWall?0:gesture.decorOffset.u);
  const y=target.y+(changedWall?0:gesture.decorOffset.y);
  const side=target.side;
- const nextU=THREE.MathUtils.clamp(u,side==='back'||side==='front'?-4.65:-4.1,side==='back'||side==='front'?4.65:4.1);
+ const wallLimit=(side==='back'||side==='front'?ROOM_HALF_X:ROOM_HALF_Z)-.42;
+ const nextU=THREE.MathUtils.clamp(u,-wallLimit,wallLimit);
  const nextY=THREE.MathUtils.clamp(y,.9,3.65);
  const prior=(side==='back'||side==='front')?d.position.x:d.position.z;
  if(changedWall||Math.abs(nextU-prior)>.001||Math.abs(d.position.y-nextY)>.001){
@@ -1311,8 +1313,8 @@ renderer.domElement.addEventListener('pointermove',e=>{
   if(gesture.toy){
     if(moved>MOVE_THRESHOLD)gesture.dragging=true;
     if(gesture.dragging&&groundAt(e,hit)){
-      const tx=THREE.MathUtils.clamp(hit.x+gesture.toyOffset.x,-4.95,4.95);
-      const tz=THREE.MathUtils.clamp(hit.z+gesture.toyOffset.z,-4.45,4.45);
+      const tx=THREE.MathUtils.clamp(hit.x+gesture.toyOffset.x,MIN_X,MAX_X);
+      const tz=THREE.MathUtils.clamp(hit.z+gesture.toyOffset.z,MIN_Z,MAX_Z);
       gesture.toy.position.x=tx;gesture.toy.position.z=tz;
       gesture.toy.position.y=.13;
     }
@@ -1408,7 +1410,7 @@ function finishPointer(e,cancel=false){
     if(doubleTap){
       if(g.onPet||petAt(e)){focusCamera('pet');say('Mochi’ye odaklandın 🐉');return}
       const floorPos=floorAtScreen(e.clientX,e.clientY);
-      if(floorPos){CAMERA_TARGET.set(THREE.MathUtils.clamp(floorPos.x,-7.5,7.5),1.15,THREE.MathUtils.clamp(floorPos.z,-7,7));updateCamera();say('Kamera buraya odaklandı 📷');return}
+      if(floorPos){CAMERA_TARGET.set(THREE.MathUtils.clamp(floorPos.x,-ROOM_HALF_X,ROOM_HALF_X),1.15,THREE.MathUtils.clamp(floorPos.z,-ROOM_HALF_Z,ROOM_HALF_Z));updateCamera();say('Kamera buraya odaklandı 📷');return}
     }
     if(g.onPet||petAt(e)){reactToPet();return}
     if(resting){say('Mochi dinleniyor. Uyandır düğmesine dokun 💤');return}
