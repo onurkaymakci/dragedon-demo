@@ -36,10 +36,11 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #sleepZzz span:nth-child(3){font-size:33px;animation-delay:1.05s}
 @keyframes floatZ{0%,100%{transform:translateY(8px) scale(.8);opacity:.25}45%{transform:translateY(-16px) scale(1.1);opacity:1}80%{transform:translateY(-28px) scale(1);opacity:.4}}
 @media(max-width:600px){#bar .care-btn{min-width:0;padding:7px 2px;gap:2px;min-height:51px}#bar .care-icon{font-size:22px}#bar .care-label{font-size:10px}#bar #reset{grid-column:auto}}
+#petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.5</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
-<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.6</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
 <button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
@@ -251,6 +252,25 @@ let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=fals
 let lastNeedsSave=0;
 let awakeSeconds=0;
 let wakeStartedAt=-10000;
+let nextAttentionAt=performance.now()+11000;
+let attentionStartedAt=-10000;
+let attentionKind='';
+const ATTENTION_DURATION=3400;
+const petThought=document.getElementById('petThought');
+const thoughtAnchor=new THREE.Vector3();
+function triggerAttention(now){
+ if(resting||headingToBed||petRoute.length||stats.energy<15||stats.joy>=50)return;
+ attentionKind=stats.joy<25?'beg':'bored';
+ attentionStartedAt=now;
+ nextAttentionAt=now+(stats.joy<25?18000:27000);
+ petThought.textContent=attentionKind==='beg'?'Benimle oynar mısın? 🎾':'Biraz sıkıldım… 💗';
+}
+function clearAttention(){
+ attentionStartedAt=-10000;
+ attentionKind='';
+ petThought.style.display='none';
+ nextAttentionAt=performance.now()+25000;
+}
 const WAKE_ANIMATION_MS=2400;
 const ambientLight=scene.children.find(o=>o.isHemisphereLight);
 const mainLight=scene.children.find(o=>o.isDirectionalLight);
@@ -309,6 +329,7 @@ document.getElementById('play').onclick=()=>{
  stats.food=Math.max(0,stats.food-7);
  stats.energy=Math.max(0,stats.energy-13);
  awakeSeconds=0; // Oyun, neşe düşüşü için bekleme süresini sıfırlar.
+ clearAttention();
  stats.clean=Math.max(0,stats.clean-3);
  act('joy',20,'Mochi oynadı, biraz yoruldu ve acıktı! 🎾');
  if(stats.energy<12)startRest(true);
@@ -375,11 +396,12 @@ const petTarget=new THREE.Vector3(0,.13,0);
 let petRoute=[],petReactionStart=-10000,petReactionKind='happy',blinkAt=0,nextBlink=2000,stepCycle=0;
 const petPhrases=['Mochi seni gördüğüne sevindi! 💗','Mochi zıplıyor! ✨','Mochi mırıldandı! 🎵','Mochi seni seviyor! 🐾'];
 function reactToPet(){
-  if(isSleeping()){say('Şşş… Mochi uyuyor. 🌙');return;}
+  if(isSleeping()||headingToBed){say('Şşş… Mochi dinleniyor. 🌙');return;}
+  clearAttention();
   petReactionKind=Math.random()<.5?'jump':'tilt';
   petReactionStart=performance.now();
   blinkAt=petReactionStart;
-  stats.joy=Math.min(100,stats.joy+2);refresh();save();
+  stats.joy=Math.min(100,stats.joy+5);refresh();save();
   say(petPhrases[Math.floor(Math.random()*petPhrases.length)]);
 }
 // Oda sınırları ve mobilya çevresinde basit ızgara yol bulma
@@ -922,6 +944,24 @@ function frame(t){
     headRig.rotation.z=tilt*.35;
     babyTail.rotation.y=crawlBlend*.17*Math.sin(stepCycle)+(1-crawlBlend)*.1*Math.sin(t*.002);
   }
+  // Neşe azaldığında, yürüme ve uykuya müdahale etmeden oyuncuya seslen.
+  if(!resting&&!headingToBed&&!petRoute.length&&t>=nextAttentionAt)triggerAttention(t);
+  if(resting||headingToBed||stats.joy>=50)clearAttention();
+  const attentionElapsed=t-attentionStartedAt;
+  const attentionActive=attentionElapsed>=0&&attentionElapsed<ATTENTION_DURATION&&!resting&&!headingToBed&&!petRoute.length;
+  const attentionWave=attentionActive?Math.sin(Math.PI*attentionElapsed/ATTENTION_DURATION):0;
+  if(attentionActive){
+    headRig.rotation.z+=Math.sin(t*.008)*.13*attentionWave;
+    headRig.rotation.x-=.10*attentionWave;
+    if(attentionKind==='beg'){
+      for(const limb of crawlLimbs)if(limb.front>0){
+        limb.joint.position.y+=.12*attentionWave;
+        limb.joint.rotation.x-=.35*attentionWave;
+      }
+    }
+    babyTail.rotation.y+=.20*Math.sin(t*.012)*attentionWave;
+  }
+  if(attentionElapsed>=ATTENTION_DURATION&&attentionStartedAt>0)clearAttention();
   // Uyanınca ağır ağır doğrulma, iki ön patiyi geriye esnetme, başı kaldırma.
   const wakeElapsed=t-wakeStartedAt;
   const waking=wakeElapsed>=0&&wakeElapsed<WAKE_ANIMATION_MS&&!resting;
@@ -972,6 +1012,18 @@ function frame(t){
       sleepZzz.style.top=((1-sleepAnchor.y)*innerHeight/2)+'px';
     }
   }else sleepZzz.style.display='none';
+  if(attentionActive&&!waking){
+    pet.updateWorldMatrix(true,false);
+    thoughtAnchor.set(0,2.05,.05);
+    pet.localToWorld(thoughtAnchor);
+    thoughtAnchor.project(camera);
+    const onscreen=thoughtAnchor.z>-1&&thoughtAnchor.z<1&&Math.abs(thoughtAnchor.x)<.90&&Math.abs(thoughtAnchor.y)<.92;
+    petThought.style.display=onscreen?'block':'none';
+    if(onscreen){
+      petThought.style.left=((thoughtAnchor.x+1)*innerWidth/2)+'px';
+      petThought.style.top=((1-thoughtAnchor.y)*innerHeight/2)+'px';
+    }
+  }else petThought.style.display='none';
   // Dokunma tepkisi büyük ekranda da net görülsün.
   const wakeStretch=waking?Math.sin(Math.PI*wakePhase)*.095:0;
   pet.scale.setScalar((reacting?1+.12*Math.sin(Math.PI*reactionTime/750):1)+wakeStretch);
