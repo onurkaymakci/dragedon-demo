@@ -12,9 +12,14 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 
 /* Mobil v0.2: daha küçük paneller, daha rahat kontrol alanı */
 @media(max-width:600px){#top{top:8px;left:8px;right:8px;gap:7px}.card{padding:8px 10px;border-radius:12px}h1{font-size:15px}.stat{font-size:10px;margin-top:3px}.track{width:62px;height:6px}.subtitle{font-size:9px}#hint{top:104px;font-size:10px}#bar{bottom:8px;gap:6px}button{padding:10px 9px;font-size:11px;border-radius:12px}#toast{bottom:99px;max-width:90vw;white-space:normal;text-align:center}}
+#roomActions{position:fixed;right:10px;bottom:84px;display:flex;gap:6px;z-index:3;flex-direction:column;align-items:flex-end}
+#roomActions button{padding:9px 13px;border:1px solid #b6a0cb;background:#f5e5ff;color:#382748;font-size:12px}
+#switchWall{display:none}
+@media(max-width:600px){#roomActions{bottom:77px;right:9px}#roomActions button{padding:8px 10px;font-size:11px}}
 </style></head><body>
 <div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · DEMO 0.1</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Mobilya / duvar eşyasına basılı tut · Dolaba dokun: aç/kapa</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
+<div id="roomActions"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button></div>
 <div id="bar"><button id="feed">🍓 Besle</button><button id="play">🎾 Oyna</button><button id="wash">🛁 Temizle</button><button id="theme">🎨 Tema</button><button id="reset">↺ Sıfırla</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
@@ -82,12 +87,24 @@ box(backWall,1.97,.08,.11,'#fff4fa',.2,2.95,-4.76);
 box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-4.69);
 // Duvar dekoru kendi grubunda: duvar üzerinde uzun basılarak taşınır.
 const wallDecor=[];
+const wallParents={back:backWall,front:frontWall,left:leftWall,right:rightWall};
+const wallFacing={back:0,front:Math.PI,left:Math.PI/2,right:-Math.PI/2};
+function setDecorWall(group,side,u,y){
+ const previous=group.userData.side||side;
+ // Orijinal model hangi duvara göre üretildiyse aynı yönü yeni duvarda koru.
+ group.userData.side=side;
+ wallParents[side].add(group);
+ group.rotation.y=wallFacing[group.userData.originalSide||previous]-wallFacing[side];
+ const along=THREE.MathUtils.clamp(u,side==='back'||side==='front'?-4.65:-4.1,side==='back'||side==='front'?4.65:4.1);
+ const h=THREE.MathUtils.clamp(y,.9,3.65);
+ if(side==='back')group.position.set(along,h,-4.80);
+ if(side==='front')group.position.set(along,h,4.80);
+ if(side==='left')group.position.set(-5.30,h,along);
+ if(side==='right')group.position.set(5.30,h,along);
+}
 function decor(name,side,x,y){
- const group=new THREE.Group();group.userData.decor=name;group.userData.side=side;
- if(side==='back'){group.position.set(x,y,-4.80);backWall.add(group)}
- if(side==='front'){group.position.set(x,y,4.80);frontWall.add(group)}
- if(side==='left'){group.position.set(-5.30,y,x);leftWall.add(group)}
- if(side==='right'){group.position.set(5.30,y,x);rightWall.add(group)}
+ const group=new THREE.Group();group.userData.decor=name;group.userData.side=side;group.userData.originalSide=side;
+ setDecorWall(group,side,x,y);
  wallDecor.push(group);return group;
 }
 const backShelf=decor('backShelf','back',-3.6,2.35);
@@ -167,10 +184,8 @@ for(let f of furniture)if(saved[f.userData.name]){
 for(const d of wallDecor){
   const pos=saved['decor:'+d.userData.decor];
   if(Array.isArray(pos)&&pos.length>=2){
-    const side=d.userData.side;
-    if(side==='back'||side==='front')d.position.x=THREE.MathUtils.clamp(pos[0],-4.65,4.65);
-    else d.position.z=THREE.MathUtils.clamp(pos[0],-4.1,4.1);
-    d.position.y=THREE.MathUtils.clamp(pos[1],.9,3.65);
+    const side=typeof pos[2]==='string'&&wallParents[pos[2]]?pos[2]:d.userData.side;
+    setDecorWall(d,side,pos[0],pos[1]);
   }
 }
 wardrobeOpen=!!saved.wardrobeOpen;wardrobeDoorProgress=wardrobeOpen?1:0;
@@ -187,7 +202,7 @@ function save(){
  for(const f of furniture)data[f.userData.name]=[f.position.x,f.position.z,f.rotation.y];
  for(const d of wallDecor){
    const side=d.userData.side;
-   data['decor:'+d.userData.decor]=[side==='back'||side==='front'?d.position.x:d.position.z,d.position.y];
+   data['decor:'+d.userData.decor]=[side==='back'||side==='front'?d.position.x:d.position.z,d.position.y,side];
  }
  data.wardrobeOpen=wardrobeOpen;
  data.petStage=babyStage;
@@ -200,6 +215,25 @@ document.getElementById('wash').onclick=()=>act('clean',25,'Mochi tertemiz oldu!
 document.getElementById('theme').onclick=()=>{currentTheme=(currentTheme+1)%themes.length;floor.material.color.set(themes[currentTheme][0]);for(const w of [wall,wall2,wallFront,wallRight])w.material.color.set(themes[currentTheme][1]);save();say('Yeni oda rengi kaydedildi! 🎨')};
 document.getElementById('reset').onclick=()=>{localStorage.removeItem(key);location.reload()};
 // v0.3 / Görev #1: güvenli mobilya dokunma ve taşıma
+let selectedWallDecor=null;
+function selectWallDecor(d){
+ selectedWallDecor=d;
+ document.getElementById('switchWall').style.display=d?'block':'none';
+}
+document.getElementById('rotateRug').onclick=()=>{
+ rug.rotation.y=(rug.rotation.y+Math.PI/2)%(Math.PI*2);
+ const p=furniturePlacement(rug,rug.position.x,rug.position.z);
+ rug.position.set(p.x,0,p.z);
+ save();say('Halı 90° döndürüldü! ↻');
+};
+document.getElementById('switchWall').onclick=()=>{
+ if(!selectedWallDecor)return;
+ const sides=['back','right','front','left'];
+ const d=selectedWallDecor,side=sides[(sides.indexOf(d.userData.side)+1)%4];
+ const u=(d.userData.side==='back'||d.userData.side==='front')?d.position.x:d.position.z;
+ setDecorWall(d,side,u,d.position.y);
+ save();say('Dekor '+({back:'arka',front:'ön',left:'sol',right:'sağ'}[side])+' duvara taşındı! 🖼️');
+};
 const ray=new THREE.Raycaster(), coords=new THREE.Vector2();
 const ground=new THREE.Plane(new THREE.Vector3(0,1,0),0), hit=new THREE.Vector3();
 const petTarget=new THREE.Vector3(0,.13,0);
@@ -387,8 +421,10 @@ function footprint(f,rotation=f.rotation.y){
 }
 function furniturePlacement(f,x,z){
  if(f.userData.name==='rug'){
-   return {x:THREE.MathUtils.clamp(x,-ROOM_HALF_X+2.05,ROOM_HALF_X-2.05),
-           z:THREE.MathUtils.clamp(z,-ROOM_HALF_Z+1.5,ROOM_HALF_Z-1.5),rotation:0};
+   const rotation=f.rotation.y;
+   const [w,d]=footprint(f,rotation);
+   return {x:THREE.MathUtils.clamp(x,-ROOM_HALF_X+w/2+.15,ROOM_HALF_X-w/2-.15),
+           z:THREE.MathUtils.clamp(z,-ROOM_HALF_Z+d/2+.15,ROOM_HALF_Z-d/2-.15),rotation};
  }
  let rotation=f.rotation.y;
  // Bir duvara 1.4 birim mesafedeyse hizala; duvara geçecek şekilde itme.
@@ -431,18 +467,46 @@ function wallPoint(e,decor,out){
  const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,decor.position);
  return ray.ray.intersectPlane(plane,out);
 }
+function visibleWallHit(e){
+ point(e);
+ let nearest=null,nearestDist=Infinity;
+ const defs=[
+  {side:'back',axis:'z',value:-4.80,limit:4.65},
+  {side:'front',axis:'z',value:4.80,limit:4.65},
+  {side:'left',axis:'x',value:-5.30,limit:4.1},
+  {side:'right',axis:'x',value:5.30,limit:4.1}
+ ];
+ for(const w of defs){
+   if(!wallParents[w.side].visible)continue;
+   const normal=w.axis==='x'?new THREE.Vector3(1,0,0):new THREE.Vector3(0,0,1);
+   const origin=w.axis==='x'?new THREE.Vector3(w.value,0,0):new THREE.Vector3(0,0,w.value);
+   const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,origin);
+   const p=new THREE.Vector3();
+   if(!ray.ray.intersectPlane(plane,p))continue;
+   const along=w.axis==='x'?p.z:p.x;
+   if(Math.abs(along)>w.limit+.25||p.y<.65||p.y>4.0)continue;
+   const distance=ray.ray.origin.distanceTo(p);
+   if(distance<nearestDist){nearest={side:w.side,u:along,y:p.y};nearestDist=distance}
+ }
+ return nearest;
+}
 function moveDecoration(e){
  const d=gesture?.decor;
  if(!d||!gesture.dragging)return;
- // World-plane üzerinden sürükleme, eksenleri duvara göre kısıtla.
- if(!wallPoint(e,d,hit))return;
- const side=d.userData.side;
- const coord=side==='back'||side==='front'?'x':'z';
- const limit=(coord==='x'?ROOM_HALF_X:ROOM_HALF_Z)-.75;
- const newU=THREE.MathUtils.clamp(hit[coord]+gesture.decorOffset.u,-limit,limit);
- const newY=THREE.MathUtils.clamp(hit.y+gesture.decorOffset.y,.85,3.65);
- if(Math.abs(d.position[coord]-newU)>.001||Math.abs(d.position.y-newY)>.001){
-   d.position[coord]=newU;d.position.y=newY;gesture.changed=true;
+ const target=visibleWallHit(e);
+ if(!target)return;
+ // Yeni bir duvara geçişte dokunulan noktayı esas al, aynı duvarda tutma offset'ini koru.
+ const changedWall=d.userData.side!==target.side;
+ const u=target.u+(changedWall?0:gesture.decorOffset.u);
+ const y=target.y+(changedWall?0:gesture.decorOffset.y);
+ const side=target.side;
+ const nextU=THREE.MathUtils.clamp(u,side==='back'||side==='front'?-4.65:-4.1,side==='back'||side==='front'?4.65:4.1);
+ const nextY=THREE.MathUtils.clamp(y,.9,3.65);
+ const prior=(side==='back'||side==='front')?d.position.x:d.position.z;
+ if(changedWall||Math.abs(nextU-prior)>.001||Math.abs(d.position.y-nextY)>.001){
+   setDecorWall(d,side,nextU,nextY);
+   if(changedWall){gesture.decorOffset.u=0;gesture.decorOffset.y=0;}
+   gesture.changed=true;
  }
 }
 function moveFurniture(e){
@@ -474,8 +538,10 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   gesture={id:e.pointerId,start,last:start,item,decor,onPet,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
     initial:item?{position:item.position.clone(),rotation:item.rotation.y}:null,
-    decorInitial:decor?decor.position.clone():null};
+    decorInitial:decor?decor.position.clone():null,
+    decorOriginalSide:decor?decor.userData.side:null};
   if(decor){
+    selectWallDecor(decor);
     const side=decor.userData.side;
     const coordinate=(side==='back'||side==='front')?'x':'z';
     if(wallPoint(e,decor,hit)){
@@ -539,7 +605,8 @@ function finishPointer(e,cancel=false){
   clearHold();
   const g=gesture;gesture=null;
   if(g.decor){
-    if(cancel&&g.decorInitial)g.decor.position.copy(g.decorInitial);
+    if(cancel&&g.decorInitial)setDecorWall(g.decor,g.decorOriginalSide,
+      g.decorOriginalSide==='back'||g.decorOriginalSide==='front'?g.decorInitial.x:g.decorInitial.z,g.decorInitial.y);
     else if(g.changed){save();say('Duvar dekoru yerleştirildi! 🖼️')}
     else if(!g.canceled)say('Duvar dekorunu taşımak için basılı tut 🖐️');
     return;
@@ -549,6 +616,7 @@ function finishPointer(e,cancel=false){
     else if(g.changed){save();say(g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
     else if(!g.canceled&&!g.dragging){
       if(g.item===wardrobe)toggleWardrobe();
+      else if(g.item===rug)say('Halıyı ↻ düğmesiyle döndürebilirsin');
       else say('Mobilyayı taşımak için basılı tut 🖐️');
     }
     return;
