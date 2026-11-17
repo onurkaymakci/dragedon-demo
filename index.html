@@ -39,7 +39,7 @@ button{border:0;border-radius:14px;padding:12px 11px;background:#fff0fa;color:#4
 #petThought{position:fixed;z-index:4;display:none;pointer-events:none;max-width:170px;padding:7px 11px;border-radius:18px 18px 18px 5px;background:#fff4ff;color:#4a355b;border:1px solid #dcc5ec;box-shadow:0 3px 12px #25163555;font-size:12px;font-weight:800;text-align:center;transform:translate(-50%,-100%)}
 @media(prefers-reduced-motion:reduce){#sleepZzz span{animation:none}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.6</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.6.7</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="roomActions"><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
@@ -251,6 +251,9 @@ for(const k of ['food','joy','clean','energy'])stats[k]=THREE.MathUtils.clamp(Nu
 let resting=false,headingToBed=false,lightOn=saved.lightOn!==false,autoRest=false;
 let lastNeedsSave=0;
 let awakeSeconds=0;
+let darknessSeconds=0;
+let fear=saved.lightOn===false?25:0; // Karanlıkta uyanık başlarsa hafif tedirginlik.
+let lastComfortAt=-10000;
 let wakeStartedAt=-10000;
 let nextAttentionAt=performance.now()+11000;
 let attentionStartedAt=-10000;
@@ -259,11 +262,12 @@ const ATTENTION_DURATION=3400;
 const petThought=document.getElementById('petThought');
 const thoughtAnchor=new THREE.Vector3();
 function triggerAttention(now){
- if(resting||headingToBed||petRoute.length||stats.energy<15||stats.joy>=50)return;
- attentionKind=stats.joy<25?'beg':'bored';
+ if(resting||headingToBed||petRoute.length||stats.energy<15)return;
+ if(fear<20&&stats.joy>=50)return;
+ attentionKind=fear>=20?'scared':stats.joy<25?'beg':'bored';
  attentionStartedAt=now;
- nextAttentionAt=now+(stats.joy<25?18000:27000);
- petThought.textContent=attentionKind==='beg'?'Benimle oynar mısın? 🎾':'Biraz sıkıldım… 💗';
+ nextAttentionAt=now+(attentionKind==='scared'?12000:stats.joy<25?18000:27000);
+ petThought.textContent=attentionKind==='scared'?'Karanlıktan korktum… 🥺':attentionKind==='beg'?'Benimle oynar mısın? 🎾':'Biraz sıkıldım… 💗';
 }
 function clearAttention(){
  attentionStartedAt=-10000;
@@ -329,6 +333,7 @@ document.getElementById('play').onclick=()=>{
  stats.food=Math.max(0,stats.food-7);
  stats.energy=Math.max(0,stats.energy-13);
  awakeSeconds=0; // Oyun, neşe düşüşü için bekleme süresini sıfırlar.
+ fear=Math.max(0,fear-55);
  clearAttention();
  stats.clean=Math.max(0,stats.clean-3);
  act('joy',20,'Mochi oynadı, biraz yoruldu ve acıktı! 🎾');
@@ -339,8 +344,22 @@ document.getElementById('wash').onclick=()=>{
  act('clean',25,'Mochi tertemiz oldu! 🫧');
 };
 document.getElementById('lights').onclick=()=>{
- lightOn=!lightOn;applyLighting();save();
- say(lightOn?'Işıklar açıldı ☀️':'Işıklar kapandı 🌙');
+ lightOn=!lightOn;applyLighting();
+ if(!resting&&!headingToBed){
+  if(!lightOn){
+    fear=Math.max(fear,75);
+    darknessSeconds=0;
+    stats.joy=Math.max(0,stats.joy-18);
+    triggerAttention(performance.now());
+    say('Mochi karanlıktan korktu! 🥺 Işığı aç veya onu sev.');
+  }else{
+    fear=0;darknessSeconds=0;
+    stats.joy=Math.min(100,stats.joy+6);
+    clearAttention();
+    say('Ohh, ışık açıldı! Mochi rahatladı. 💗');
+  }
+ }
+ refresh();updateClock();save();
 };
 document.getElementById('rest').onclick=()=>{
  if(resting){wakeUp();return}
@@ -398,11 +417,22 @@ const petPhrases=['Mochi seni gördüğüne sevindi! 💗','Mochi zıplıyor! �
 function reactToPet(){
   if(isSleeping()||headingToBed){say('Şşş… Mochi dinleniyor. 🌙');return;}
   clearAttention();
+  const comfort=fear>=20;
+  const now=performance.now();
   petReactionKind=Math.random()<.5?'jump':'tilt';
-  petReactionStart=performance.now();
-  blinkAt=petReactionStart;
-  stats.joy=Math.min(100,stats.joy+5);refresh();save();
-  say(petPhrases[Math.floor(Math.random()*petPhrases.length)]);
+  petReactionStart=now;
+  blinkAt=now;
+  // Sevgi ile neşe artar; karanlıktayken korku yavaş yavaş geçer.
+  if(comfort){
+    fear=Math.max(0,fear-35);
+    stats.joy=Math.min(100,stats.joy+9);
+    lastComfortAt=now;
+    say(fear<20?'Mochi sevildi ve sakinleşti! 💗':'Mochi biraz rahatladı, yanında kal 🥰');
+  }else{
+    stats.joy=Math.min(100,stats.joy+5);
+    say(petPhrases[Math.floor(Math.random()*petPhrases.length)]);
+  }
+  awakeSeconds=0;refresh();updateClock();save();
 }
 // Oda sınırları ve mobilya çevresinde basit ızgara yol bulma
 const PET_RADIUS=.55,GRID=.30,MIN_X=-4.95,MAX_X=4.95,MIN_Z=-4.45,MAX_Z=4.45;
@@ -808,7 +838,7 @@ renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,tru
 function isSleeping(){return resting}
 function updateClock(){
  document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
- document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':stats.joy<25?'Mochi oyun istiyor 🎾':stats.joy<50?'Mochi biraz sıkıldı':'Mochi mutlu';
+ document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':fear>=20?'Mochi karanlıktan korkuyor 🥺':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':stats.joy<25?'Mochi oyun istiyor 🎾':stats.joy<50?'Mochi biraz sıkıldı':'Mochi mutlu';
  // Uyku veya yatağa gidiş sırasında bakım ve oyun yapılamaz.
  for(const id of ['feed','wash','play']){
   const button=document.getElementById(id);
@@ -846,6 +876,7 @@ function startRest(automatic=false){
 }
 function lieDown(){
  headingToBed=false;resting=true;petRoute=[];
+ fear=0;darknessSeconds=0;clearAttention();
  updateClock();
  pet.position.x=bed.position.x;pet.position.z=bed.position.z;
  pet.position.y=.59;pet.rotation.y=bed.rotation.y;
@@ -855,6 +886,7 @@ function lieDown(){
 function wakeUp(fullyRested=false){
  if(!resting)return;
  resting=false;autoRest=false;
+ fear=0;darknessSeconds=0;
  wakeStartedAt=performance.now();
  awakeSeconds=0;
  const p=bedApproach()[0];
@@ -904,14 +936,24 @@ function frame(t){
     // Enerji dolunca uyku biter: kalk, lambayı aç ve bakım kontrollerini geri getir.
     if(stats.energy>=100){stats.energy=100;wakeUp(true)}
   }else if(!headingToBed){
-    // Neşe bekledikçe düşer, uyku süresince düşmez.
-    // 40 sn aktif uyanıklıkta 1 puan, açlıkta ek 1 puan.
+    // Aktif uyanıklıkta neşe daha belirgin azalır; uykuda korunur.
     awakeSeconds+=dt;
-    if(awakeSeconds>=40){
-      const intervals=Math.floor(awakeSeconds/40);
-      awakeSeconds-=intervals*40;
-      stats.joy=Math.max(0,stats.joy-intervals*(stats.food<25?2:1));
+    if(awakeSeconds>=15){
+      const intervals=Math.floor(awakeSeconds/15);
+      awakeSeconds-=intervals*15;
+      stats.joy=Math.max(0,stats.joy-intervals*(stats.food<25?3:2));
     }
+    // Karanlıkta korku canlıdır: sevgi rahatlatır ama ışık yoksa korku geri gelebilir.
+    if(!lightOn){
+      darknessSeconds+=dt;
+      if(darknessSeconds>=12){
+        const intervals=Math.floor(darknessSeconds/12);
+        darknessSeconds-=intervals*12;
+        if(performance.now()-lastComfortAt>12000)fear=Math.min(100,fear+intervals*8);
+        stats.joy=Math.max(0,stats.joy-intervals*2);
+      }
+    }else{darknessSeconds=0;fear=Math.max(0,fear-dt*15);}
+
   }
   if(t-lastNeedsSave>5000){lastNeedsSave=t;refresh();updateClock();save()}
   crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
@@ -946,14 +988,18 @@ function frame(t){
   }
   // Neşe azaldığında, yürüme ve uykuya müdahale etmeden oyuncuya seslen.
   if(!resting&&!headingToBed&&!petRoute.length&&t>=nextAttentionAt)triggerAttention(t);
-  if(resting||headingToBed||stats.joy>=50)clearAttention();
+  if(resting||headingToBed||(stats.joy>=50&&fear<20))clearAttention();
   const attentionElapsed=t-attentionStartedAt;
   const attentionActive=attentionElapsed>=0&&attentionElapsed<ATTENTION_DURATION&&!resting&&!headingToBed&&!petRoute.length;
   const attentionWave=attentionActive?Math.sin(Math.PI*attentionElapsed/ATTENTION_DURATION):0;
   if(attentionActive){
     headRig.rotation.z+=Math.sin(t*.008)*.13*attentionWave;
     headRig.rotation.x-=.10*attentionWave;
-    if(attentionKind==='beg'){
+    if(attentionKind==='scared'){
+      headRig.rotation.z+=Math.sin(t*.022)*.075*attentionWave;
+      bodyRig.rotation.z+=Math.sin(t*.035)*.045*attentionWave;
+    }
+    if(attentionKind==='beg'||attentionKind==='scared'){
       for(const limb of crawlLimbs)if(limb.front>0){
         limb.joint.position.y+=.12*attentionWave;
         limb.joint.rotation.x-=.35*attentionWave;
