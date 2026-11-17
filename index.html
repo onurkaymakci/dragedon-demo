@@ -142,7 +142,7 @@ body.care-menu-open #roomActions{bottom:calc(174px + env(safe-area-inset-bottom,
  #toast{bottom:calc(46px + env(safe-area-inset-bottom,0px));max-width:45vw;white-space:normal;font-size:10px;padding:5px 9px}
 }
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.8.8</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.9.0</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <button id="toolsToggle" type="button" title="Kamera ve oda araçları" aria-label="Kamera ve oda araçlarını aç" aria-expanded="false" aria-controls="cameraTools roomActions">🛠️</button>
@@ -237,6 +237,7 @@ const extraFurniture=new Map();
 let nextFurnitureId=1,selectedFurniture=null;
 let furnitureEdit=null; // {f,original,created,remove}; yalnızca ✓ Onayla ile kaydet
 let furnitureMoveMode=false;
+let interactTarget=null,interactActive=null,interactStarted=0,nextFurnitureExplore=performance.now()+19000,lastInteractedId=null;
 function item(name,x,z){const group=new THREE.Group();group.position.set(x,0,z);group.userData.name=name;scene.add(group);furniture.push(group);return group}
 const rug=item('rug',0,.65);
 box(rug,3.8,.045,2.7,'#f8eade',0,.005,0);
@@ -1191,9 +1192,11 @@ function removeExtraFurnitureObject(f){
  extraFurniture.delete(f.userData.name);
  scene.remove(f);f.traverse(o=>{if(o.isMesh)o.geometry.dispose()});
  if(selectedFurniture===f)selectedFurniture=null;
+ if(interactTarget?.id===f.userData.name||interactActive?.f===f)cancelInteraction();
 }
 function beginFurnitureEdit(f,created=false){
  if(!f?.userData.extraType)return;
+ if(interactTarget?.id===f.userData.name||interactActive?.f===f)cancelInteraction();
  if(furnitureEdit?.f===f)return;
  if(furnitureEdit)cancelFurnitureEdit();
  furnitureEdit={f,created,original:created?null:{position:f.position.clone(),rotation:f.rotation.y}};
@@ -1312,6 +1315,7 @@ const editPanel=document.getElementById('roomActions');
 const editButton=document.getElementById('toggleEdit');
 editButton.onclick=()=>{
  closeCareMenu();
+ if(!editMode)cancelInteraction();
  if(editMode&&furnitureEdit){say('Önce mobilyayı ✓ Onayla veya ✕ Vazgeç ile tamamla 🛋️');return}
  editMode=!editMode;
  editPanel.classList.toggle('is-playing',!editMode);
@@ -1441,6 +1445,53 @@ if(Array.isArray(saved.furnitureInventory)){
  }
 }
 nextFurnitureId=Math.max(Number(saved.nextFurnitureId)||1,1,...[...extraFurniture.keys()].map(id=>Number(id.split('-')[1])+1));
+function furnitureArrivalSpots(f){
+ const [w,d]=footprint(f),offset=PET_RADIUS+.20,spots=[];
+ for(const sign of [-1,1])for(const ratio of [-.5,0,.5]){
+  spots.push({x:f.position.x+ratio*w*.55,z:f.position.z+sign*(d/2+offset)});
+  spots.push({x:f.position.x+sign*(w/2+offset),z:f.position.z+ratio*d*.55});
+ }
+ return spots.filter(p=>petCellFree(p.x,p.z)).sort((a,b)=>Math.hypot(a.x-pet.position.x,a.z-pet.position.z)-Math.hypot(b.x-pet.position.x,b.z-pet.position.z));
+}
+function cancelInteraction(){
+ if(interactActive){pet.position.x=interactActive.x;pet.position.z=interactActive.z;pet.position.y=.13}
+ interactTarget=null;interactActive=null;petRoute=[];
+}
+function exploreFurniture(f){
+ if(!f?.userData.extraType||editMode||furnitureEdit||resting||headingToBed)return false;
+ if(stats.energy<6||stats.food<5){say('Mochi önce dinlenmek veya yemek istiyor 🐉');return false}
+ cancelInteraction();toyTargetId=null;stopToyPlaying();
+ for(const p of furnitureArrivalSpots(f)){
+  if(Math.hypot(pet.position.x-p.x,pet.position.z-p.z)<.25||planPetRoute(p.x,p.z)){
+   interactTarget={id:f.userData.name,x:p.x,z:p.z,at:performance.now()};
+   clearAttention();nextFurnitureExplore=performance.now()+19000;
+   say('Mochi mobilyayı keşfetmeye gidiyor! 🐾');return true;
+  }
+ }
+ say('Mochi eşyaya ulaşamıyor; biraz boşluk aç 🪑');return false;
+}
+function beginInteraction(t){
+ const target=interactTarget;if(!target)return;
+ const f=extraFurniture.get(target.id);interactTarget=null;petRoute=[];
+ if(!f)return;
+ if(Math.hypot(pet.position.x-target.x,pet.position.z-target.z)>.6){say('Mochi mobilyaya ulaşamadı 🐾');return}
+ interactActive={f,type:f.userData.extraType,x:pet.position.x,z:pet.position.z,at:t};
+ const dx=f.position.x-pet.position.x,dz=f.position.z-pet.position.z;
+ if(Math.hypot(dx,dz)>.01)pet.rotation.y=Math.atan2(dx,dz);
+ const messages={sofa:'Mochi koltuğa oturuyor 🛋️',pouf:'Mochi puf üzerinde zıplıyor 🟣',table:'Mochi oyun masasıyla ilgileniyor 🧩',bookshelf:'Mochi kitapları inceliyor 📚',plant:'Mochi bitkiyi kokluyor 🌿',floorlamp:'Mochi lambaya bakıyor 💡',nightstand:'Mochi komodini merak etti 🗄️',toyShelf:'Mochi oyuncak rafını inceliyor 🧸'};
+ say(messages[f.userData.extraType]||'Mochi etrafı inceliyor 🐉');
+}
+function finishInteraction(t){
+ const a=interactActive;if(!a)return;
+ if(resting||headingToBed||editMode||furnitureEdit||!extraFurniture.has(a.f.userData.name)){cancelInteraction();return}
+ if(t-a.at<3400)return;
+ pet.position.x=a.x;pet.position.z=a.z;pet.position.y=.13;
+ interactActive=null;lastInteractedId=a.f.userData.name;nextFurnitureExplore=t+19000;
+ const change={sofa:[3,5],pouf:[8,-3],table:[10,-4],bookshelf:[5,-2],plant:[5,0],floorlamp:[3,-1],nightstand:[2,2],toyShelf:[7,-3]}[a.type]||[3,-1];
+ stats.joy=THREE.MathUtils.clamp(stats.joy+change[0],0,100);
+ stats.energy=THREE.MathUtils.clamp(stats.energy+change[1],0,100);
+ refresh();updateClock();save();say('Mochi mobilyayla eğlendi! 💗');
+}
 function clearPetSegment(a,b){
  const distance=Math.hypot(b.x-a.x,b.z-a.z);
  const steps=Math.max(1,Math.ceil(distance/.13));
@@ -1723,9 +1774,10 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   const decor=editMode&&!onPet&&!toy?decorationAt(e):null;
   const hitFurniture=!onPet&&!toy&&!decor?furnitureAt(e):null;
   const item=editMode?hitFurniture:null;
+  const interactFurniture=!editMode&&hitFurniture?.userData.extraType?hitFurniture:null;
   const onChest=hitFurniture===chest;
   const start={x:e.clientX,y:e.clientY};
-  gesture={id:e.pointerId,start,last:start,item,decor,toy,onChest,toyOffset:{x:0,z:0},toyInitial:toy?toy.position.clone():null,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
+  gesture={id:e.pointerId,start,last:start,item,decor,toy,onChest,interactFurniture,toyOffset:{x:0,z:0},toyInitial:toy?toy.position.clone():null,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
     initial:item?{position:item.position.clone(),rotation:item.rotation.y}:null,
     decorInitial:decor?decor.position.clone():null,
@@ -1880,6 +1932,8 @@ function finishPointer(e,cancel=false){
     return;
   }
   if(!cancel&&!g.dragging&&distance({x:e.clientX,y:e.clientY},g.start)<=MOVE_THRESHOLD){
+    if(g.interactFurniture){exploreFurniture(g.interactFurniture);return}
+    if(interactTarget||interactActive)cancelInteraction();
     const now=performance.now();
     const doubleTap=now-lastCameraTap.at<320&&Math.hypot(e.clientX-lastCameraTap.x,e.clientY-lastCameraTap.y)<45;
     lastCameraTap={at:now,x:e.clientX,y:e.clientY};
@@ -1976,8 +2030,14 @@ function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min((t-lastTime)/1000,.05);lastTime=t;
   const sleeping=isSleeping();
+  if(interactTarget){
+   const f=extraFurniture.get(interactTarget.id);
+   if(!f||editMode||resting||headingToBed||furnitureEdit){interactTarget=null;petRoute=[]}
+   else if(Math.hypot(pet.position.x-interactTarget.x,pet.position.z-interactTarget.z)<.15)beginInteraction(t);
+   else if(t-interactTarget.at>14000){interactTarget=null;petRoute=[];say('Mochi mobilyaya ulaşamadı 🐾')}
+  }
   // Oyuncak keşfi: boşta kaldığında, aç/tok ve enerji dengesi uygunsa.
-  if(!toyPlayingId&&!toyTargetId&&!petRoute.length&&t>=nextToyExploreAt&&mayPlayToys()){
+  if(!toyPlayingId&&!toyTargetId&&!interactTarget&&!interactActive&&!petRoute.length&&t>=nextToyExploreAt&&mayPlayToys()){
     selectToyForMochi();
     if(!toyTargetId&&!toyPlayingId)nextToyExploreAt=t+6500;
   }
@@ -1991,6 +2051,11 @@ function frame(t){
       say('Mochi oyuncağa ulaşamıyor; biraz daha açık bir yere koy 🧸');
     }
   }
+  if(!editMode&&!resting&&!headingToBed&&!interactTarget&&!interactActive&&!toyTargetId&&!toyPlayingId&&!petRoute.length&&t>=nextFurnitureExplore&&!furnitureEdit&&stats.energy>=18&&stats.food>=10){
+   const available=[...extraFurniture.values()].filter(f=>f.userData.name!==lastInteractedId);
+   if(available.length)exploreFurniture(available[Math.floor(Math.random()*available.length)]);
+   nextFurnitureExplore=t+21000;
+  }
   let moving=false;
   if(!sleeping&&toyTargetId){
     moving=approachToyDirect(dt);
@@ -2001,6 +2066,7 @@ function frame(t){
     const wp=petRoute[0],dx=wp.x-pet.position.x,dz=wp.z-pet.position.z;
     const dist=Math.hypot(dx,dz);
     if(dist<.035){petRoute.shift();if(headingToBed&&!petRoute.length)lieDown()
+      else if(interactTarget&&!petRoute.length)beginInteraction(t)
       else if(toyTargetId&&!petRoute.length)startToyPlaying(t);
       // Kovalamaca sırasında rotanın bitmesi, oyunun bittiği anlamına gelmez.
       // Topa gerçek mesafe kontrolünü updateToyPlay yapar.
@@ -2052,6 +2118,7 @@ function frame(t){
 
   }
   if(toyPlayingId)updateToyPlay(t);
+  finishInteraction(t);
   if(t-lastNeedsSave>5000){lastNeedsSave=t;refresh();updateClock();save()}
   crawlBlend=THREE.MathUtils.damp(crawlBlend,moving?1:0,7,dt);
   stepCycle+=movedDistance*8;
@@ -2083,6 +2150,29 @@ function frame(t){
     headRig.rotation.x=crawlBlend*(-.01+.018*Math.sin(stepCycle*2))+(1-crawlBlend)*.015*Math.sin(t*.0017);
     headRig.rotation.z=tilt*.35;
     babyTail.rotation.y=crawlBlend*.17*Math.sin(stepCycle)+(1-crawlBlend)*.1*Math.sin(t*.002);
+  }
+  if(interactActive){
+   const a=interactActive,ms=t-a.at,u=Math.min(1,ms/3400);
+   const envelope=Math.sin(Math.PI*u),beat=Math.sin(ms*.015);
+   if(a.type==='sofa'){
+    const mount=Math.max(0,Math.min(1,ms/650,(3400-ms)/650));
+    pet.position.x=THREE.MathUtils.lerp(a.x,a.f.position.x,mount);
+    pet.position.z=THREE.MathUtils.lerp(a.z,a.f.position.z+.10,mount);
+    pet.position.y+=.43*mount;
+    pet.rotation.x=-.10*mount;
+    headRig.rotation.x-=.12*mount;
+   }else if(a.type==='pouf'){
+    pet.position.y+=.23*Math.max(0,Math.sin(ms*.013))*envelope;
+    babyTail.rotation.y+=.30*beat*envelope;
+   }else if(a.type==='plant'||a.type==='bookshelf'){
+    headRig.rotation.x-=.18*envelope;headRig.rotation.z+=.12*beat*envelope;
+   }else if(a.type==='table'||a.type==='toyShelf'){
+    for(const limb of crawlLimbs)if(limb.front>0){
+     limb.joint.position.y+=.18*envelope*Math.max(0,Math.sin(ms*.027+(limb.side>0?Math.PI:0)));
+    }
+    headRig.rotation.x+=.11*beat*envelope;
+   }else headRig.rotation.z+=.12*beat*envelope;
+   babyTail.rotation.y+=.20*beat*envelope;
   }
   if(toyPlayingId){
     const playBeat=t-toyPlayStartedAt;
