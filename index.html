@@ -141,15 +141,31 @@ body.care-menu-open #roomActions{bottom:calc(174px + env(safe-area-inset-bottom,
  .furnOption{padding:7px 5px;font-size:10px}.furnOption b{font-size:11px}
  #toast{bottom:calc(46px + env(safe-area-inset-bottom,0px));max-width:45vw;white-space:normal;font-size:10px;padding:5px 9px}
 }
+/* Başlangıç karakter seçimi v0.9.3 */
+#characterModal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:12px;background:#20182bea}
+#characterModal.open{display:flex}
+#characterPanel{width:min(94vw,600px);max-height:95dvh;overflow:auto;background:linear-gradient(155deg,#fff7ff,#e8edff);color:#3a2a51;border-radius:22px;padding:18px;box-shadow:0 16px 50px #0d082b90}
+#characterPanel h2{margin:0 0 6px;text-align:center;font-size:22px}#characterPanel p{margin:0 0 14px;text-align:center;font-size:12px;color:#655677}
+#characterGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.characterCard{border:3px solid transparent;background:#fff;border-radius:16px;padding:11px 8px;text-align:center;min-width:0}
+.characterCard[aria-pressed="true"]{border-color:#9e7af1;background:#f2eaff}
+.characterEmoji{display:block;font-size:43px}.characterCard b{display:block;font-size:15px}.characterCard small{display:block;font-size:11px;color:#776284}
+.characterSwatch{display:block;width:48px;height:7px;background:var(--char-color);margin:7px auto 0;border-radius:10px}
+#characterNameLabel{display:block;margin:12px 0 5px;font-size:12px;font-weight:700}
+#characterName{width:100%;padding:11px;border:1px solid #c8b5d9;border-radius:10px;color:#3a2a51;background:#fff;font-size:16px}
+#characterActions{display:flex;justify-content:center;gap:8px;margin-top:13px}#characterStart{background:#cef4db;color:#265238}#characterCancel{background:#efe4fa}
+#characterInfo{text-align:center;font-size:10px;color:#776a80;margin-top:9px}
+@media(orientation:landscape) and (max-height:600px){#characterPanel{max-height:98dvh;padding:10px}#characterGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.characterCard{padding:6px 3px}.characterEmoji{font-size:28px}#characterPanel h2{font-size:18px}}
 </style></head><body>
-<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.9.2</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="top"><div class="card"><h1>DRAGEDON</h1><div class="subtitle">THE WORLD OF ESILDA · v0.9.3</div><div class="stat">🍎 Tokluk <div class="track"><div id="food" class="fill" style="width:70%"></div></div></div><div class="stat">💗 Neşe <div class="track"><div id="joy" class="fill" style="width:80%;background:#f6a0c0"></div></div></div><div class="stat">🫧 Temizlik <div class="track"><div id="clean" class="fill" style="width:75%;background:#89cfff"></div></div></div><div class="stat">⚡ Enerji <div class="track"><div id="energy" class="fill" style="width:85%;background:#ffd279"></div></div></div></div><div class="card"><div id="clock">☀️</div><div id="mood" class="subtitle">Mochi mutlu</div></div></div>
+<div id="characterModal" role="dialog" aria-modal="true" aria-label="Karakter seçimi"><div id="characterPanel"><h2>🐉 Ejderhanı Seç</h2><p>DRAGEDON dünyasına hangi dostunla gireceksin?</p><div id="characterGrid"></div><label id="characterNameLabel" for="characterName">Karakterinin ismi</label><input id="characterName" maxlength="18" autocomplete="off"/><div id="characterActions"><button id="characterCancel" type="button">Vazgeç</button><button id="characterStart" type="button">✨ Karakterimi seç</button></div><div id="characterInfo">Karakter renkleri ve kayıt sistemi hazır. Ayrıntılı 3D karakter modelleri sonraki aşamada gelecek.</div></div></div>
 <div id="hint">Düzenleme açık · Eşyaya basılı tut: taşı · İki parmak: yakınlaştır</div><div id="sleepZzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div><div id="petThought" aria-live="polite"></div><div id="petHearts" aria-hidden="true">💗 💕</div><div id="tiredBattery" aria-label="Mochi çok yorgun">🪫</div><div id="toast">Mochi seni bekliyordu! 🐉</div>
 <div id="toyModal" role="dialog" aria-modal="true" aria-label="Oyuncak kutusu"><div id="toyPanel"><h2>🧸 Oyuncak Kutusu</h2><p>Bir veya birkaç oyuncak seç. Odaya çıkan oyuncakları tek tek sürükleyip kutunun üstüne bırakarak geri topla.</p><div id="toyGrid"></div><div id="toyCount"></div><div id="toyActions"><button id="toyClose" type="button">Kapat</button><button id="toyTake" type="button">Seçilenleri çıkar ✨</button></div></div></div>
 <button id="toolsToggle" type="button" title="Kamera ve oda araçları" aria-label="Kamera ve oda araçlarını aç" aria-expanded="false" aria-controls="cameraTools roomActions">🛠️</button>
 <div id="cameraTools" aria-label="Kamera kontrolleri"><button id="cameraRoom" type="button" title="Odayı göster">🏠 Oda</button><button id="cameraPet" type="button" title="Mochi'ye odaklan">🐉 Mochi</button><button id="cameraNear" type="button" title="Yakınlaş">＋</button><button id="cameraFar" type="button" title="Uzaklaş">－</button></div>
 <div id="furnEditBar" aria-label="Seçili mobilya düzenleme"><strong id="furnEditTitle">🛋️ Mobilya seçildi</strong><button id="furnEditMove" type="button">✋ Taşı</button><button id="furnEditRotate" type="button">↻ Döndür</button><button id="furnEditRemove" type="button">📦 Kaldır</button><button id="furnConfirm" type="button">✓ Onayla</button><button id="furnCancel" type="button">✕ Vazgeç</button></div>
 <div id="furnModal" role="dialog" aria-modal="true" aria-label="Mobilya envanteri"><div id="furnPanel"><h2>🛋️ Oda Envanteri</h2><p>Mobilyaya dokunarak odaya ekle. Ardından eşyanın yanında çıkan Taşı, Döndür, Kaldır ve ✓ Onayla araçlarıyla düzenle. Eşyaya uzun basarak da düzenlemeye başlayabilirsin.</p><div id="furnGrid"></div><div id="furnSelected">Ekleyeceğin eşyayı seç</div><div id="furnActions"><button id="furnClose" type="button">Kapat</button></div></div></div>
-<div id="roomActions"><button id="openFurn" type="button">🛋️ Eşyalar</button><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="saveRoom" type="button">💾 Odayı kaydet</button><button id="loadRoom" type="button">📂 Kayıtlı odayı yükle</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
+<div id="roomActions"><button id="openFurn" type="button">🛋️ Eşyalar</button><button id="openCharacters" type="button">🐉 Karakter</button><button id="toggleEdit" class="modeButton" aria-pressed="true">✓ Düzenlemeyi bitir</button><div id="editTools"><button id="switchWall">🖼️ Duvarı değiştir</button><button id="rotateRug">↻ Halıyı döndür</button><button id="saveRoom" type="button">💾 Odayı kaydet</button><button id="loadRoom" type="button">📂 Kayıtlı odayı yükle</button><button id="resetView">⌖ Kamerayı ortala</button></div></div>
 <button id="careToggle" type="button" aria-label="Mochi bakım menüsünü aç" aria-controls="bar" aria-expanded="false" title="Mochi bakımı">🐉</button>
 <div id="bar" aria-label="Mochi bakım kontrolleri">
 <button class="care-btn" id="feed" aria-label="Besle" title="Besle"><span class="care-icon">🍓</span><span class="care-label">Besle</span></button>
@@ -406,6 +422,28 @@ const tailMesh=new THREE.Mesh(new THREE.ConeGeometry(.19,.68,12),material('#84da
 tailMesh.rotation.x=-Math.PI/2;tailMesh.position.z=-.22;babyTail.add(tailMesh);
 let babyStage='baby'; // İleride genç/erişkin evrelere genişletilecek.
 const key='dragedon-demo-save-v1';let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+const characterKey='dragedon-character-v1';
+const CHARACTERS=[
+ {id:'mochi',name:'Mochi',emoji:'🐲',trait:'Sevecen ve utangaç',main:'#84dac5',head:'#a6ecda',horn:'#908fd9',nose:'#f4a5b4'},
+ {id:'ember',name:'Ember',emoji:'🔥',trait:'Enerjik ve oyuncu',main:'#f5a18d',head:'#ffd0b0',horn:'#ef77a0',nose:'#ec7f92'},
+ {id:'drako',name:'Drako',emoji:'💙',trait:'Cesur ve meraklı',main:'#78aaf3',head:'#a6caff',horn:'#9668d8',nose:'#9273c6'},
+ {id:'luma',name:'Luma',emoji:'⭐',trait:'Sakin ve ışıl ışıl',main:'#f9d57b',head:'#ffe8aa',horn:'#efb958',nose:'#e7a17b'}];
+let storedCharacter=null;try{storedCharacter=JSON.parse(localStorage.getItem(characterKey)||'null')}catch{}
+let characterId=CHARACTERS.some(p=>p.id===storedCharacter?.id)?storedCharacter.id:
+ CHARACTERS.some(p=>p.id===saved.characterId)?saved.characterId:'mochi';
+let characterName=(typeof storedCharacter?.name==='string'&&storedCharacter.name.trim()?storedCharacter.name:
+ typeof saved.characterName==='string'&&saved.characterName.trim()?saved.characterName:
+ CHARACTERS.find(p=>p.id===characterId).name).slice(0,18);
+function applyCharacterAppearance(){
+ const p=CHARACTERS.find(v=>v.id===characterId)||CHARACTERS[0];
+ const palette={'#84dac5':p.main,'#a6ecda':p.head,'#908fd9':p.horn,'#f4a5b4':p.nose};
+ pet.traverse(o=>{
+  if(!o.isMesh||!o.material?.color||o===petHitbox)return;
+  if(!o.userData.characterBaseColor)o.userData.characterBaseColor='#'+o.material.color.getHexString();
+  const to=palette[o.userData.characterBaseColor];if(to)o.material.color.set(to);
+ });
+}
+applyCharacterAppearance();
 for(let f of furniture)if(saved[f.userData.name]){
   f.position.x=THREE.MathUtils.clamp(saved[f.userData.name][0],-ROOM_HALF_X+.8,ROOM_HALF_X-.8);
   f.position.z=THREE.MathUtils.clamp(saved[f.userData.name][1],-ROOM_HALF_Z+.8,ROOM_HALF_Z-.8);
@@ -908,7 +946,7 @@ function refresh(){
  for(const k of ['food','joy','clean','energy'])document.getElementById(k).style.width=THREE.MathUtils.clamp(stats[k],0,100)+'%';
 }
 function save(){
- const data={stats,theme:currentTheme,lightOn,toys:Object.fromEntries([...activeToys].map(([id,toy])=>[id,[toy.position.x,toy.position.z]])),
+ const data={stats,theme:currentTheme,lightOn,characterId,characterName,toys:Object.fromEntries([...activeToys].map(([id,toy])=>[id,[toy.position.x,toy.position.z]])),
  furnitureInventory:[...extraFurniture.values()].filter(f=>!(furnitureEdit?.f===f&&furnitureEdit.created)).map(f=>{
   const pose=furnitureEdit?.f===f?furnitureEdit.original:null;
   return {id:f.userData.name,type:f.userData.extraType,x:pose?pose.position.x:f.position.x,z:pose?pose.position.z:f.position.z,r:pose?pose.rotation:f.rotation.y};
@@ -1967,7 +2005,7 @@ renderer.domElement.addEventListener('lostpointercapture',e=>finishPointer(e,tru
 function isSleeping(){return resting}
 function updateClock(){
  document.getElementById('clock').textContent=resting?'💤':headingToBed?'🛏️':lightOn?'☀️':'🌙';
- document.getElementById('mood').textContent=resting?'Mochi dinleniyor':headingToBed?'Mochi yatağa gidiyor':fear>=20?'Mochi karanlıktan korkuyor 🥺':stats.energy<20?'Mochi yorgun':stats.food<20?'Mochi acıktı':stats.joy<25?'Mochi oyun istiyor 🎾':stats.joy<50?'Mochi biraz sıkıldı':'Mochi mutlu';
+ document.getElementById('mood').textContent=resting?characterName+' dinleniyor':headingToBed?characterName+' yatağa gidiyor':fear>=20?characterName+' korkuyor 🥺':stats.energy<20?characterName+' yorgun':stats.food<20?characterName+' acıktı':stats.joy<25?characterName+' oyun istiyor 🎾':stats.joy<50?characterName+' biraz sıkıldı':characterName+' mutlu';
  // Uyku veya yatağa gidiş sırasında bakım ve oyun yapılamaz.
  for(const id of ['feed','wash','play']){
   const button=document.getElementById(id);
@@ -2446,5 +2484,39 @@ function frame(t){
   renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
+// Eski kullanıcıların odası değişmez; yeni kullanıcı karakter seçimiyle başlar.
+const characterModal=document.getElementById('characterModal');
+const characterGrid=document.getElementById('characterGrid');
+const characterInput=document.getElementById('characterName');
+let pendingCharacterId=characterId;
+function renderCharacterCards(){
+ characterGrid.innerHTML='';
+ for(const p of CHARACTERS){
+  const button=document.createElement('button');
+  button.type='button';button.className='characterCard';button.setAttribute('aria-pressed',String(p.id===pendingCharacterId));
+  button.style.setProperty('--char-color',p.main);
+  button.innerHTML='<span class="characterEmoji" aria-hidden="true">'+p.emoji+'</span><b>'+p.name+'</b><small>'+p.trait+'</small><span class="characterSwatch"></span>';
+  button.onclick=()=>{pendingCharacterId=p.id;characterInput.value=p.name;for(const b of characterGrid.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button))};
+  characterGrid.append(button);
+ }
+}
+function openCharacterSelection(firstTime=false){
+ pendingCharacterId=characterId;renderCharacterCards();characterInput.value=characterName;
+ document.getElementById('characterCancel').hidden=firstTime;
+ characterModal.classList.add('open');closeCareMenu();closeToolsMenu();
+}
+document.getElementById('openCharacters').onclick=()=>{
+ if(furnitureEdit){say('Önce mobilyayı ✓ Onayla veya ✕ Vazgeç ile tamamla');return}
+ openCharacterSelection();
+};
+document.getElementById('characterCancel').onclick=()=>characterModal.classList.remove('open');
+document.getElementById('characterStart').onclick=()=>{
+ const p=CHARACTERS.find(v=>v.id===pendingCharacterId)||CHARACTERS[0];
+ characterId=p.id;characterName=characterInput.value.trim().slice(0,18)||p.name;
+ try{localStorage.setItem(characterKey,JSON.stringify({id:characterId,name:characterName,version:1}))}catch{}
+ applyCharacterAppearance();characterModal.classList.remove('open');
+ updateClock();save();say('Hoş geldin, '+characterName+'! 🐉');
+};
+if(!storedCharacter&&!saved.characterId&&Object.keys(saved).length===0)openCharacterSelection(true);
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();placeCamera();renderer.setSize(innerWidth,innerHeight)});refresh();
 </script></body></html>
