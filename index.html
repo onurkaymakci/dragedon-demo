@@ -88,24 +88,36 @@ box(backWall,2.14,.12,.45,'#e6b899',.2,2.22,-4.69);
 // Duvar dekoru kendi grubunda: duvar üzerinde uzun basılarak taşınır.
 const wallDecor=[];
 const wallParents={back:backWall,front:frontWall,left:leftWall,right:rightWall};
+// Sabit içe bakan yönler: back +Z, front -Z, left +X, right -X.
 const wallFacing={back:0,front:Math.PI,left:Math.PI/2,right:-Math.PI/2};
-function setDecorWall(group,side,u,y){
- const previous=group.userData.side||side;
- // Orijinal model hangi duvara göre üretildiyse aynı yönü yeni duvarda koru.
- group.userData.side=side;
- wallParents[side].add(group);
- group.rotation.y=wallFacing[group.userData.originalSide||previous]-wallFacing[side];
+const decorDepth={picture:.20,pictureTwo:.20,backShelf:.23,rightShelf:.23,wallLamp:.22,frontStar:.20};
+function setDecorWall(anchor,side,u,y){
+ if(!wallParents[side])return;
+ anchor.userData.side=side;
+ // Duvar yönü her seferinde mutlak olarak hesaplanır: önceki transferin yönü birikmez.
+ wallParents[side].add(anchor);
+ anchor.rotation.set(0,wallFacing[side],0);
  const along=THREE.MathUtils.clamp(u,side==='back'||side==='front'?-4.65:-4.1,side==='back'||side==='front'?4.65:4.1);
- const h=THREE.MathUtils.clamp(y,.9,3.65);
- if(side==='back')group.position.set(along,h,-4.80);
- if(side==='front')group.position.set(along,h,4.80);
- if(side==='left')group.position.set(-5.30,h,along);
- if(side==='right')group.position.set(5.30,h,along);
+ const height=THREE.MathUtils.clamp(y,.9,3.65);
+ const depth=decorDepth[anchor.userData.decor]??.20;
+ if(side==='back')anchor.position.set(along,height,-ROOM_HALF_Z+depth);
+ if(side==='front')anchor.position.set(along,height,ROOM_HALF_Z-depth);
+ if(side==='left')anchor.position.set(-ROOM_HALF_X+depth,height,along);
+ if(side==='right')anchor.position.set(ROOM_HALF_X-depth,height,along);
 }
 function decor(name,side,x,y){
- const group=new THREE.Group();group.userData.decor=name;group.userData.side=side;group.userData.originalSide=side;
- setDecorWall(group,side,x,y);
- wallDecor.push(group);return group;
+ // Anchor duvara hizalanır. Model kökü yalnızca ilk yapıldığı duvarın
+ // eksen düzenini bir kez telafi eder; böylece sonraki transferlerde şekil bozulmaz.
+ const anchor=new THREE.Group();
+ anchor.userData.decor=name;
+ anchor.userData.side=side;
+ anchor.userData.originalSide=side;
+ const modelRoot=new THREE.Group();
+ modelRoot.rotation.y=-wallFacing[side];
+ anchor.add(modelRoot);
+ setDecorWall(anchor,side,x,y);
+ wallDecor.push(anchor);
+ return modelRoot;
 }
 const backShelf=decor('backShelf','back',-3.6,2.35);
 box(backShelf,1.28,.14,.36,'#f2cca6',0,0,0);
