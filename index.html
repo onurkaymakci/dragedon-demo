@@ -1818,8 +1818,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   const hitFurniture=!onPet&&!toy&&!decor?furnitureAt(e):null;
   const item=editMode?hitFurniture:null;
   const interactFurniture=!editMode&&hitFurniture?.userData.extraType?hitFurniture:null;
-  const onChest=hitFurniture===chest;
-  const onWardrobe=hitFurniture===wardrobe;
+  // Oda düzenleme sırasında kısa dokunuş kapak/oyuncak etkileşimini tetiklemesin.
+  const onChest=!editMode&&hitFurniture===chest;
+  const onWardrobe=!editMode&&hitFurniture===wardrobe;
   const start={x:e.clientX,y:e.clientY};
   gesture={id:e.pointerId,start,last:start,item,decor,toy,onChest,onWardrobe,interactFurniture,toyOffset:{x:0,z:0},toyInitial:toy?toy.position.clone():null,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
