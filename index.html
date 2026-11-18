@@ -1293,7 +1293,8 @@ function candidateExtraPlacement(f,x,z,rotation=f.rotation.y,autoWall=true){
   ].sort((a,b)=>a.distance-b.distance);
   const near=distances[0];
   const axis=near.side==='back'||near.side==='front';
-  if(near.distance<(axis?1.45:1.5)){
+  const snapRange=(f.userData.extraType==='bookshelf'||f.userData.extraType==='toyShelf')?3.4:2.65;
+  if(near.distance<snapRange){
    // Düz duvarın önüne bakacak şekilde 90 derecelik hizalama.
    r=axis?0:Math.PI/2;
    width=footprint(f,r);
@@ -1699,7 +1700,7 @@ function furniturePlacement(f,x,z){
  const closest=distances[0];
  // Dolabın geniş gövdesi yüzünden parmağın düştüğü nokta duvardan
  // 1.55 birimden uzakta kalabiliyordu. Sağ duvarda yön bu yüzden eski kalıyordu.
- const snapDistance=f.userData.extraType?0:f.userData.name==='wardrobe'?2.45:1.55;
+ const snapDistance=f.userData.name==='wardrobe'?3.7:f.userData.name==='bed'?3.5:2.6;
  const snapped=closest.d<snapDistance;
  if(snapped){
    if(f.userData.name==='wardrobe'){
@@ -1743,10 +1744,10 @@ function visibleWallHit(e){
  point(e);
  let nearest=null,nearestDist=Infinity;
  const defs=[
-  {side:'back',axis:'z',value:-4.80,limit:4.65},
-  {side:'front',axis:'z',value:4.80,limit:4.65},
-  {side:'left',axis:'x',value:-5.30,limit:4.1},
-  {side:'right',axis:'x',value:5.30,limit:4.1}
+  {side:'back',axis:'z',value:-ROOM_HALF_Z+.20,limit:ROOM_HALF_X-.42},
+  {side:'front',axis:'z',value:ROOM_HALF_Z-.20,limit:ROOM_HALF_X-.42},
+  {side:'left',axis:'x',value:-ROOM_HALF_X+.20,limit:ROOM_HALF_Z-.42},
+  {side:'right',axis:'x',value:ROOM_HALF_X-.20,limit:ROOM_HALF_Z-.42}
  ];
  for(const w of defs){
    if(!wallParents[w.side].visible)continue;
@@ -1818,8 +1819,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   const item=editMode?hitFurniture:null;
   const interactFurniture=!editMode&&hitFurniture?.userData.extraType?hitFurniture:null;
   const onChest=hitFurniture===chest;
+  const onWardrobe=hitFurniture===wardrobe;
   const start={x:e.clientX,y:e.clientY};
-  gesture={id:e.pointerId,start,last:start,item,decor,toy,onChest,interactFurniture,toyOffset:{x:0,z:0},toyInitial:toy?toy.position.clone():null,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
+  gesture={id:e.pointerId,start,last:start,item,decor,toy,onChest,onWardrobe,interactFurniture,toyOffset:{x:0,z:0},toyInitial:toy?toy.position.clone():null,onPet,petting:false,petDistance:0,petSamples:0,armed:false,dragging:false,changed:false,canceled:false,timer:null,
     offset:{x:0,z:0},decorOffset:{u:0,y:0},
     initial:item?{position:item.position.clone(),rotation:item.rotation.y}:null,
     decorInitial:decor?decor.position.clone():null,
@@ -1939,6 +1941,7 @@ function finishPointer(e,cancel=false){
     return;
   }
   if(g.onChest&&!cancel&&!g.dragging&&!g.changed){openToyBox();return;}
+  if(g.onWardrobe&&!cancel&&!g.dragging&&!g.changed&&!g.canceled){toggleWardrobe();return;}
   if(g.onPet&&g.petting){
     if(!cancel&&!resting&&!headingToBed)finishPetting();
     return;
@@ -1967,7 +1970,7 @@ function finishPointer(e,cancel=false){
     else if(g.changed){save();say(g.item===rug?'Halı yerleştirildi! ✨':'Mobilya duvara hizalandı! 🪑');}
     else if(!g.canceled&&!g.dragging){
       if(g.item===bed&&!editMode){startRest(false)}
-      else if(g.item===wardrobe)toggleWardrobe();
+      else if(g.item===wardrobe)say('Dolaba dokunarak kapakları açıp kapatabilirsin 👗');
       else if(g.item===rug)say('Halıyı ↻ düğmesiyle döndürebilirsin');
       else say('Mobilyayı taşımak için basılı tut 🖐️');
     }
